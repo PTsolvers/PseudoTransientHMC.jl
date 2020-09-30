@@ -9,7 +9,7 @@ const GPU_ID   = 0
 #     @init_parallel_stencil(Threads, Float64, 2)
 # end
 using Plots, Printf, Statistics, LinearAlgebra
-using MAT
+using MAT, Interpolations
 ################################ Macros from cuda_scientific
 # import ParallelStencil: INDICES
 # ix,  iy  = INDICES[1], INDICES[2]
