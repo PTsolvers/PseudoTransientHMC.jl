@@ -55,7 +55,7 @@ end
     ly              = ly_lx*lx             # Model height [m]
     P_LU            = P_LU*Pini_Pappl      # Transform look-up table stress to PT stress scale
     # Numerical resolution
-    nx              = 100                               # Numerical resolution width
+    nx              = 100                              # Numerical resolution width
     ny              = nx+1                             # Numerical resolution height
     tol             = 1e-4                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
@@ -194,7 +194,7 @@ end
         	q_f_Y      .= -para_cy.*diff(Pf  ,dims=2)./dy        # Correct   Darcy flux with fluid pressure
         	q_f_X_Ptot .= -para_cx.*diff(Ptot,dims=1)./dx        # Incorrect Darcy flux with total pressure
         	q_f_Y_Ptot .= -para_cy.*diff(Ptot,dims=2)./dy        # Incorrect Darcy flux with total pressure
-        	∇q_f       .= 0*diff(q_f_X[:,2:end-1],dims=1)./dx .+ diff(q_f_Y[2:end-1,:],dims=2)./dy
+        	∇q_f       .= diff(q_f_X[:,2:end-1],dims=1)./dx .+ diff(q_f_Y[2:end-1,:],dims=2)./dy
         	Res_Pf     .= -∇q_f .-(Rho_t[2:end-1,2:end-1].-Rho_t_old[2:end-1,2:end-1])./dtp .- ∇V_ρ_t[2:end-1,2:end-1] # CONSERVATION OF TOTAL MASS EQUATION
         	Pf[2:end-1,2:end-1] .= Pf[2:end-1,2:end-1] .+ dt_Pf.*Res_Pf
         	# Look up for densities
