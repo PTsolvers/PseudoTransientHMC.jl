@@ -1,4 +1,4 @@
-const USE_GPU  = true  # Use GPU? If this is set false, then the CUDA packages do not need to be installed! :)
+const USE_GPU  = false  # Use GPU? If this is set false, then the CUDA packages do not need to be installed! :)
 const GPU_ID   = 0
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -6,16 +6,16 @@ using ParallelStencil.FiniteDifferences2D
     @init_parallel_stencil(CUDA, Float64, 2)
     CUDA.device!(GPU_ID) # select GPU
     macro pow(args...)  esc(:(CUDA.pow($(args...)))) end
-    macro sqrt(args...) esc(:(CUDA.sqrt($(args...)))) end
+    # macro sqrt(args...) esc(:(CUDA.sqrt($(args...)))) end
     macro log(args...)  esc(:(CUDA.log($(args...)))) end
-    macro exp(args...)  esc(:(CUDA.exp($(args...)))) end
+    # macro exp(args...)  esc(:(CUDA.exp($(args...)))) end
 else
     @init_parallel_stencil(Threads, Float64, 2)
     pow(x,y) = x^y
-    macro pow(args...)  esc(:(Base.pow($(args...)))) end
-    macro sqrt(args...) esc(:(Base.sqrt($(args...)))) end
+    macro pow(args...)  esc(:(pow($(args...)))) end
+    # macro sqrt(args...) esc(:(Base.sqrt($(args...)))) end
     macro log(args...)  esc(:(Base.log($(args...)))) end
-    macro exp(args...)  esc(:(Base.exp($(args...)))) end
+    # macro exp(args...)  esc(:(Base.exp($(args...)))) end
 end
 using Plots, Printf, Statistics, LinearAlgebra
 using MAT, Interpolations
@@ -116,8 +116,8 @@ end
 
 	if (ix<=size(Rho_t,1)   && iy<=size(Rho_t,2))   Rho_t[ix,iy]   = Rho_f[ix,iy]*Phi[ix,iy] + Rho_s[ix,iy]*(1.0-Phi[ix,iy]) end
 
-	if (ix<=size(para_cx,1) && iy<=size(para_cx,2)) para_cx[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*@pow(Phi[ix,iy], 3) + Rho_f[ix+1,iy]*K_ηf[ix+1,iy]*@pow(Phi[ix+1,iy], 3) ) end
-	if (ix<=size(para_cy,1) && iy<=size(para_cy,2)) para_cy[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*@pow(Phi[ix,iy], 3) + Rho_f[ix,iy+1]*K_ηf[ix,iy+1]*@pow(Phi[ix,iy+1], 3) ) end
+	if (ix<=size(para_cx,1) && iy<=size(para_cx,2)) para_cx[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*Phi[ix,iy]^3 + Rho_f[ix+1,iy]*K_ηf[ix+1,iy]*Phi[ix+1,iy]^3 ) end
+	if (ix<=size(para_cy,1) && iy<=size(para_cy,2)) para_cy[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*Phi[ix,iy]^3 + Rho_f[ix,iy+1]*K_ηf[ix,iy+1]*Phi[ix,iy+1]^3 ) end
 	return
 end
 
@@ -178,7 +178,7 @@ end
 	if (ix<=size(Eta_iter,1) && iy<=size(Eta_iter,2))  Eta_iter[ix,iy] = Eta_pl[ix,iy] end                                    # Previous PT viscosity
 	if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]   = Eta_m[ix,iy]*@pow(τII[ix,iy]/σ_ref, 1-n_exp) end
 	if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    if (τII[ix,iy]<σ_ref) Eta_pl[ix,iy] = Eta_m[ix,iy]; end; end #η_m
-	if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]    = @exp(@log(Eta_pl[ix,iy])*relax + @log(Eta_iter[ix,iy])*(1-relax)) end
+	if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]    = exp(@log(Eta_pl[ix,iy])*relax + @log(Eta_iter[ix,iy])*(1-relax)) end
 	if (ix<=size(Eta,1)      && iy<=size(Eta,2))       Eta[ix,iy]       = 2.0/( 1.0/Eta_m[ix,iy] + 1.0/Eta_pl[ix,iy] ) end
 	return 
 end
