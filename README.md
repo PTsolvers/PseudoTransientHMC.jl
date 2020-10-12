@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/luraess/PseudoTransientHMC.jl.svg?branch=master)](https://travis-ci.com/luraess/PseudoTransientHMC.jl)
 
 ## Pseudo transient Hydro-Mechanical-Chemical routines
-This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simlation of brucite-periclase reactions. The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](#https://github.com/samo-lin/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
+This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simlation of brucite-periclase reactions. The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/samo-lin/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
 
 
 ## Content
@@ -85,6 +85,7 @@ julia>
 
 ## Output
 The output of running the `PT_HMC_v4.jl` script on an Nvidia TitanX GPU with `nx=1023, ny=1023` is following
+
 ![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1024x1024.png)
 
 
