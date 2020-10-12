@@ -90,6 +90,7 @@ The output of running the `PT_HMC_v4.jl` script on an Nvidia TitanX GPU with `nx
 
 ## To-Do
 A non-exhaustive list of potential future next steps:
+- add acceleration (damping & friends)
 - add a 3D version
 - perform some perf tests and resolution tests
 - complete the README
