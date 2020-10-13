@@ -95,13 +95,13 @@ end
 
 @parallel_indices (ix,iy) function compute_3!(Eta_m::Data.Array, Lam::Data.Array, Phi::Data.Array, η_m::Data.Number, η_i_fac::Data.Number, λ::Data.Number, λ_i_fac::Data.Number, max_min_ϕ_2::Data.Number)
 
-	if (ix<=size(Eta_m,1) && iy<=size(Eta_m,2))
-		if (Phi[ix,iy]>max_min_ϕ_2) Eta_m[ix,iy] = η_m*η_i_fac; else Eta_m[ix,iy] = η_m; end
-	end
-	if (ix<=size(Lam,1) && iy<=size(Lam,2))
-		if (Phi[ix,iy]>max_min_ϕ_2) Lam[ix,iy] = λ*λ_i_fac; else Lam[ix,iy] = λ; end
-	end
-	return
+    if (ix<=size(Eta_m,1) && iy<=size(Eta_m,2))
+        if (Phi[ix,iy]>max_min_ϕ_2) Eta_m[ix,iy] = η_m*η_i_fac; else Eta_m[ix,iy] = η_m; end
+    end
+    if (ix<=size(Lam,1) && iy<=size(Lam,2))
+        if (Phi[ix,iy]>max_min_ϕ_2) Lam[ix,iy] = λ*λ_i_fac; else Lam[ix,iy] = λ; end
+    end
+    return
 end
 
 @parallel function compute_4!(Eta_pl::Data.Array, Eta::Data.Array, Rho_t_old::Data.Array, Eta_m::Data.Array, Rho_f_old::Data.Array, Phi_old::Data.Array, Rho_s_old::Data.Array)
