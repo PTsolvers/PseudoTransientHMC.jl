@@ -138,10 +138,10 @@ end
 
 @parallel function compute_8!(Pf::Data.Array, Rho_X_ϕ::Data.Array, Res_Phi::Data.Array, Phi::Data.Array, Res_Pf::Data.Array, Rho_s::Data.Array, X_s::Data.Array, Phi_old::Data.Array, Rho_X_old::Data.Array, ∇V_ρ_x::Data.Array, dt_Pf::Data.Number, dtp::Data.Number, _dx::Data.Number, _dy::Data.Number)
 
-	@inn(Pf)      = @inn(Pf) + dt_Pf*@all(Res_Pf)
-	@all(Rho_X_ϕ) = (1.0-@all(Phi))*@all(Rho_s)*@all(X_s)
-	@all(Res_Phi) = ( @all(Rho_X_ϕ) - (1.0-@all(Phi_old))*@all(Rho_X_old) )/dtp + @all(∇V_ρ_x)   # CONSERVATION OF MASS OF MgO EQUATION
-	@all(Phi)     = @all(Phi) + dtp*@all(Res_Phi)
+    @inn(Pf)      = @inn(Pf) + dt_Pf*@all(Res_Pf)
+    @all(Rho_X_ϕ) = (1.0-@all(Phi))*@all(Rho_s)*@all(X_s)
+    @all(Res_Phi) = ( @all(Rho_X_ϕ) - (1.0-@all(Phi_old))*@all(Rho_X_old) )/dtp + @all(∇V_ρ_x)   # CONSERVATION OF MASS OF MgO EQUATION
+    @all(Phi)     = @all(Phi) + dtp*@all(Res_Phi)
     return
 end
 
@@ -184,9 +184,9 @@ end
 
 @parallel function compute_13!(Vx::Data.Array, Vy::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, dt_Stokes::Data.Number)
 
-	@inn(Vx) = @inn(Vx) + dt_Stokes*@all(Res_Vx)   # Pseudo-transient form of horizontal force balance
-	@inn(Vy) = @inn(Vy) + dt_Stokes*@all(Res_Vy)   # Pseudo-transient form of vertical force balance
-	return 
+    @inn(Vx) = @inn(Vx) + dt_Stokes*@all(Res_Vx)   # Pseudo-transient form of horizontal force balance
+    @inn(Vy) = @inn(Vy) + dt_Stokes*@all(Res_Vy)   # Pseudo-transient form of vertical force balance
+    return 
 end
 
 
@@ -357,7 +357,7 @@ end
     	it_tstep=0; err_evo1=[]; err_evo2=[]
         dt_Stokes, dt_Pf = cfl*max_dxdy2, cfl*max_dxdy2
     	while err_M>tol && it_tstep<itmax
-        	it+=1; it_tstep+=1
+            it+=1; it_tstep+=1
 
             if mod(it_tstep, 500)==0 || it_tstep==1
                 dt_Stokes = cfl*max_dxdy2/maximum(Eta)                       # Pseudo time step for Stokes
@@ -374,11 +374,11 @@ end
                 Rho_f  .= Data.Array( itp2.(Pf_tmp)./ρ_0 )
                 X_s    .= Data.Array( itp3.(Pf_tmp)      )
             end
-        	# Porosity evolution
-        	@parallel cublocks cuthreads compute_8!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_x, dt_Pf, dtp, _dx, _dy)
-        	# Stokes
-        	@parallel cublocks cuthreads swell2!(TmpX, Rho_X_ϕ, 1)
-        	@parallel cublocks cuthreads swell2!(TmpY, Rho_X_ϕ, 2)
+            # Porosity evolution
+            @parallel cublocks cuthreads compute_8!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_x, dt_Pf, dtp, _dx, _dy)
+            # Stokes
+            @parallel cublocks cuthreads swell2!(TmpX, Rho_X_ϕ, 1)
+            @parallel cublocks cuthreads swell2!(TmpY, Rho_X_ϕ, 2)
             @parallel cublocks cuthreads cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel cublocks cuthreads laplace!(∇V_ρ_x, TmpX, TmpY, _dx, _dy)
 
@@ -388,23 +388,23 @@ end
             @parallel cublocks cuthreads laplace!(∇V_ρ_t, TmpX, TmpY, _dx, _dy)
         	
             @parallel cublocks cuthreads compute_9!(∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Pf, Lam, _dx, _dy)
-        	@parallel cublocks cuthreads compute_10!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
+            @parallel cublocks cuthreads compute_10!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
         	
             @parallel cublocks cuthreads swell2!(TmpS1, τ_xy,  1)
-        	@parallel cublocks cuthreads swell2!(τ_xyn, TmpS1, 2)
-        	@parallel cublocks cuthreads compute_11!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, _dx, _dy)
-        	# power-law
-        	if n_exp>1 @parallel cublocks cuthreads compute_12!(Eta_iter, Eta_pl, Eta, Eta_m, τII, σ_ref, n_exp, relax) end
+            @parallel cublocks cuthreads swell2!(τ_xyn, TmpS1, 2)
+            @parallel cublocks cuthreads compute_11!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, _dx, _dy)
+            # power-law
+            if n_exp>1 @parallel cublocks cuthreads compute_12!(Eta_iter, Eta_pl, Eta, Eta_m, τII, σ_ref, n_exp, relax) end
 
-        	@parallel cublocks cuthreads compute_13!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
+            @parallel cublocks cuthreads compute_13!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
 
-        	if mod(it_tstep, nout)==0 && it_tstep>250
+            if mod(it_tstep, nout)==0 && it_tstep>250
                 err_Mx   = dt_Stokes*maximum(abs.(Res_Vx)/maximum(abs.(Vx)))    # Error horizontal velocitiy
                 err_My   = dt_Stokes*maximum(abs.(Res_Vy)/maximum(abs.(Vy)))    # Error vertical velocity
                 err_Pf   = dt_Pf*maximum(abs.(Res_Pf)/maximum(abs.(Pf)))        # Error fluid pressure
                 err_Phi  = dtp*maximum(abs.(Res_Phi))                           # Error porosity
                 err_M    = maximum([err_Pf, err_Mx, err_My, err_Phi])           # Error total
-        		err_evo1 = push!(err_evo1, it_tstep); err_evo2 = push!(err_evo2, err_M)
+                err_evo1 = push!(err_evo1, it_tstep); err_evo2 = push!(err_evo2, err_M)
                 # plot evol
                 # p1 = plot(err_evo1, err_evo2, legend=false, xlabel="# iterations", ylabel="log10(error)", linewidth=2, markershape=:circle, markersize=3, labels="max(error)", yaxis=:log10)
                 # display(p1)
