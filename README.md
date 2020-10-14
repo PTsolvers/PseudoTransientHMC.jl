@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/luraess/PseudoTransientHMC.jl.svg?branch=master)](https://travis-ci.com/luraess/PseudoTransientHMC.jl)
 
 ## Pseudo transient Hydro-Mechanical-Chemical routines
-This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simlation of brucite-periclase reactions. The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/samo-lin/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
+This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simulation of brucite-periclase reactions. The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/samo-lin/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
 
 
 ## Content
@@ -19,10 +19,17 @@ The [/scripts](/scripts/) folder contains the current Julia routine, the publish
 - `HMC_Public.m`
 - `LOOK_UP_HMC_Pub.mat`
 
-The [/tmp](/tmp/) folder contains previous, dev and on-work versions of the current scripts.
+The [/tmp](/tmp/) folder contains previous, dev and on-work versions of the main scripts.
 
 ## Usage
 If not stated otherwise, all the routines are written in Julia and can be executed from the REPL. Output is produced using `Plot.jl`.
+
+The either multi-threaded CPU or GPU backend can be selected by adding the appropriate flag to the `USE_GPU` constant 
+```julia
+const USE_GPU  = false  # true
+```
+- Selecting `false` will use the `Base.threads` backend. Multi-threading can be enabled by defining and exporting the `JULIA_NUM_THREADS` environment variable (e.g. `export JULIA_NUM_THREADS=2` prior to launching Julia will enable the code to run on 2 CPU threads). 
+- Selecting `true` will use the `CUDA.jl` GPU backend and will succeed if a CUDA-capable GPU is available.
 
 Example running the `PT_HMC_v4.jl` routine.
 
