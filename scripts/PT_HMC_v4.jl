@@ -6,15 +6,15 @@ using ParallelStencil.FiniteDifferences2D
     @init_parallel_stencil(CUDA, Float64, 2)
     CUDA.device!(GPU_ID) # select GPU
     macro pow(args...)  esc(:(CUDA.pow($(args...)))) end
-    # macro sqrt(args...) esc(:(CUDA.sqrt($(args...)))) end
     macro log(args...)  esc(:(CUDA.log($(args...)))) end
+    # macro sqrt(args...) esc(:(CUDA.sqrt($(args...)))) end
     # macro exp(args...)  esc(:(CUDA.exp($(args...)))) end
 else
     @init_parallel_stencil(Threads, Float64, 2)
     pow(x,y) = x^y
     macro pow(args...)  esc(:(pow($(args...)))) end
-    # macro sqrt(args...) esc(:(Base.sqrt($(args...)))) end
     macro log(args...)  esc(:(Base.log($(args...)))) end
+    # macro sqrt(args...) esc(:(Base.sqrt($(args...)))) end
     # macro exp(args...)  esc(:(Base.exp($(args...)))) end
 end
 using Plots, Printf, Statistics, LinearAlgebra
