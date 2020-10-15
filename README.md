@@ -19,19 +19,19 @@ The [/scripts](/scripts/) folder contains the current Julia routine, the publish
 - `HMC_Public.m`
 - `LOOK_UP_HMC_Pub.mat`
 
-The [/tmp](/tmp/) folder contains previous, dev and on-work versions of the main scripts.
+The [/tmp](/tmp/) folder contains previous, dev, and on-work versions of the main scripts.
 
 ## Usage
-If not stated otherwise, all the routines are written in Julia and can be executed from the REPL. Output is produced using `Plot.jl`.
+If not stated otherwise, all the routines are written in Julia and can be executed from the [Julia REPL], or from the terminal for improved performance. Output is produced using the [Julia Plots package].
 
 The either multi-threaded CPU or GPU backend can be selected by adding the appropriate flag to the `USE_GPU` constant 
 ```julia
 const USE_GPU  = false  # true
 ```
 - Selecting `false` will use the `Base.threads` backend. Multi-threading can be enabled by defining and exporting the `JULIA_NUM_THREADS` environment variable (e.g. `export JULIA_NUM_THREADS=2` prior to launching Julia will enable the code to run on 2 CPU threads). 
-- Selecting `true` will use the `CUDA.jl` GPU backend and will succeed if a CUDA-capable GPU is available.
+- Selecting `true` will use the [CUDA.jl] GPU backend and will succeed if a CUDA-capable GPU is available.
 
-Example running the `PT_HMC_v4.jl` routine.
+### Example running the routine from the REPL
 
 1. Launch Julia
 ```sh
@@ -89,9 +89,16 @@ iter tot = 17000
 
 julia> 
 ```
+### Example running the routine from the terminal
+
+1. Launch the Julia executable using the project's dependencies `--project`, disabling array bound checking for enhanced performance `--check-bounds=no`, and using optimization level 3 `-O3`.
+```sh
+% julia --project --check-bounds=no -O3 PT_HMC_v4.jl
+```
+Additional startup flag infos can be found [here](https://docs.julialang.org/en/v1/manual/getting-started/#man-getting-started)
 
 ## Output
-The output of running the `PT_HMC_v4.jl` script on an Nvidia TitanX GPU with `nx=1023, ny=1023` is following
+The output of running the script on an Nvidia TitanX GPU with `nx=1023, ny=1023` is following
 
 ![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1024x1024.png)
 
@@ -105,3 +112,7 @@ A non-exhaustive list of potential future next steps:
   - with references and cross-refs
   - further links to GPU-related computing, Julia-related computing, to stencil-based HPC Julia modules and distributed memory parallelisation Julia modules
 - certainly more to come... stay tuned
+
+[CUDA.jl]: https://github.com/JuliaGPU/CUDA.jl
+[Julia Plots package]: https://github.com/JuliaPlots/Plots.jl
+[Julia REPL]: https://docs.julialang.org/en/v1/stdlib/REPL/
