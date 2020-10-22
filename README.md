@@ -89,6 +89,7 @@ iter tot = 17000
 
 julia> 
 ```
+
 ### Example running the routine from the terminal
 
 1. Launch the Julia executable using the project's dependencies `--project`, disabling array bound checking for enhanced performance `--check-bounds=no`, and using optimization level 3 `-O3`.
