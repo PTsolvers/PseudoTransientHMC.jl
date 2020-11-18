@@ -37,11 +37,9 @@ using MAT, Interpolations
     return B
 end
 ##################################################
-import ParallelStencil: INDICES
-ix,  iy   = INDICES[1], INDICES[2]
-ixi, iyi  = :($ix+1), :($iy+1)
-
-macro av_xy(A) esc(:( ($A[$ix, $iy] + $A[($ix+1), $iy   ] + $A[$ix,($iy+1)] + $A[($ix+1),($iy+1)])*0.25 )) end
+# import ParallelStencil: INDICES # needed in case custom macro def
+# ix,  iy   = INDICES[1], INDICES[2]
+# ixi, iyi  = :($ix+1), :($iy+1)
 
 @parallel_indices (ix,iy) function swell2!(B::Data.Array, A::Data.Array, ndim::Int)
     
@@ -158,9 +156,9 @@ end
 
 @parallel function compute_10!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, Eta::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array)
     
-    @all(τ_xx)  = 2.0*@all(Eta)   * @all(ε_xx)    
-    @all(τ_yy)  = 2.0*@all(Eta)   * @all(ε_yy) 
-    @all(τ_xy)  = 2.0*@av_xy(Eta) * @all(ε_xy)
+    @all(τ_xx)  = 2.0*@all(Eta)  * @all(ε_xx)    
+    @all(τ_yy)  = 2.0*@all(Eta)  * @all(ε_yy) 
+    @all(τ_xy)  = 2.0*@av(Eta)   * @all(ε_xy)
     return 
 end
 
