@@ -56,7 +56,7 @@ Additional startup flag infos can be found [here](https://docs.julialang.org/en/
 ## Output
 The output of running the script on an Nvidia TitanXp GPU with `nx=1023, ny=1023` is following
 
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_127x127.png)
+![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
 
 
 ## To-Do
