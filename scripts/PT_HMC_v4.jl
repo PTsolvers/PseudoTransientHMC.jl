@@ -391,7 +391,7 @@ end
     p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="I) ηs [Pas]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
     display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray))
-    # savefig("PT_HMC_$(nx)_$(ny).png")
+    # savefig("PT_HMC_$(nx)x$(ny).png")
     return
 end
 
