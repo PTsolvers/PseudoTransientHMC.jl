@@ -5,20 +5,10 @@ using ParallelStencil.FiniteDifferences2D
 @static if USE_GPU
     @init_parallel_stencil(CUDA, Float64, 2)
     CUDA.device!(GPU_ID) # select GPU
-    macro pow(args...)  esc(:(CUDA.pow($(args...)))) end
-    macro log(args...)  esc(:(CUDA.log($(args...)))) end
-    # macro sqrt(args...) esc(:(CUDA.sqrt($(args...)))) end
-    # macro exp(args...)  esc(:(CUDA.exp($(args...)))) end
 else
     @init_parallel_stencil(Threads, Float64, 2)
-    pow(x,y) = x^y
-    macro pow(args...)  esc(:(pow($(args...)))) end
-    macro log(args...)  esc(:(Base.log($(args...)))) end
-    # macro sqrt(args...) esc(:(Base.sqrt($(args...)))) end
-    # macro exp(args...)  esc(:(Base.exp($(args...)))) end
 end
-using Plots, Printf, Statistics, LinearAlgebra
-using MAT, Interpolations
+using Plots, Printf, Statistics, LinearAlgebra, MAT, Interpolations
 ##################################################
 @views av_xy(A) = 0.25*(A[1:end-1,1:end-1].+A[2:end,1:end-1].+A[1:end-1,2:end].+A[2:end,2:end])
 @views av_xa(A) =  0.5*(A[1:end-1,:].+A[2:end,:])
@@ -36,15 +26,9 @@ using MAT, Interpolations
     end
     return B
 end
-##################################################
-# import ParallelStencil: INDICES # needed in case custom macro def
-# ix,  iy   = INDICES[1], INDICES[2]
-# ixi, iyi  = :($ix+1), :($iy+1)
 
 @parallel_indices (ix,iy) function swell2!(B::Data.Array, A::Data.Array, ndim::Int)
-    
     if (ix<=size(B,1) && iy<=size(B,2)) B[ix,iy] = 0.0  end
-    
     if ndim==1
         if (2<=ix<=size(B,1)-1 && iy<=size(B,2))  B[ix,iy] = 0.5*(A[ix  ,iy] +     A[ix-1,iy]) end
         if (   ix==1           && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix  ,iy] - 0.5*A[ix+1,iy]  end
@@ -58,21 +42,18 @@ end
 end
 
 @parallel function cum_mult2!(A1::Data.Array, A2::Data.Array, B1::Data.Array, B2::Data.Array)
-
     @all(A1) = @all(A1)*@all(B1)
     @all(A2) = @all(A2)*@all(B2)
     return
 end
 
 @parallel function laplace!(A::Data.Array, TmpX::Data.Array, TmpY::Data.Array, _dx::Data.Number, _dy::Data.Number)
-
     @all(A) = @d_xa(TmpX)*_dx + @d_ya(TmpY)*_dy
     return
 end
 ##################################################
 
 @parallel function compute_1!(Rho_s_old::Data.Array, Rho_f_old::Data.Array, X_s_old::Data.Array, Rho_X_old::Data.Array, Phi_old::Data.Array, Ptot_old::Data.Array, Rho_s::Data.Array, Rho_f::Data.Array, X_s::Data.Array, Phi::Data.Array, Ptot::Data.Array)
-
     @all(Rho_s_old) = @all(Rho_s)
     @all(Rho_f_old) = @all(Rho_f)
     @all(X_s_old)   = @all(X_s)
@@ -83,7 +64,6 @@ end
 end
 
 @parallel function compute_2!(Rho_X_ini::Data.Array, Phi_old::Data.Array, Phi_ini::Data.Array, Phi::Data.Array, Rho_s_ini::Data.Array, X_s_ini::Data.Array, Rho_X_old::Data.Array, ϕ_ini::Data.Number)
-
     @all(Rho_X_ini) = @all(Rho_s_ini)*@all(X_s_ini)
     @all(Phi_old)   = 1.0 - @all(Rho_X_ini)*(1.0-ϕ_ini)/@all(Rho_X_old)
     @all(Phi_ini)   = @all(Phi_old)
@@ -92,7 +72,6 @@ end
 end
 
 @parallel_indices (ix,iy) function compute_3!(Eta_m::Data.Array, Lam::Data.Array, Phi::Data.Array, η_m::Data.Number, η_i_fac::Data.Number, λ::Data.Number, λ_i_fac::Data.Number, max_min_ϕ_2::Data.Number)
-
     if (ix<=size(Eta_m,1) && iy<=size(Eta_m,2))
         if (Phi[ix,iy]>max_min_ϕ_2) Eta_m[ix,iy] = η_m*η_i_fac; else Eta_m[ix,iy] = η_m; end
     end
@@ -103,7 +82,6 @@ end
 end
 
 @parallel function compute_4!(Eta_pl::Data.Array, Eta::Data.Array, Rho_t_old::Data.Array, Eta_m::Data.Array, Rho_f_old::Data.Array, Phi_old::Data.Array, Rho_s_old::Data.Array)
-
     @all(Eta_pl)    = @all(Eta_m)
     @all(Eta)       = @all(Eta_m)
     @all(Rho_t_old) = @all(Rho_f_old)*@all(Phi_old) + @all(Rho_s_old)*(1.0 - @all(Phi_old))
@@ -111,7 +89,6 @@ end
 end
 
 @parallel_indices (ix,iy) function compute_5!(Rho_t::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Rho_f::Data.Array, Phi::Data.Array, Rho_s::Data.Array, K_ηf::Data.Array)
-
     if (ix<=size(Rho_t,1)   && iy<=size(Rho_t,2))   Rho_t[ix,iy]   = Rho_f[ix,iy]*Phi[ix,iy] + Rho_s[ix,iy]*(1.0-Phi[ix,iy]) end
     if (ix<=size(para_cx,1) && iy<=size(para_cx,2)) para_cx[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*Phi[ix,iy]^3 + Rho_f[ix+1,iy]*K_ηf[ix+1,iy]*Phi[ix+1,iy]^3 ) end
     if (ix<=size(para_cy,1) && iy<=size(para_cy,2)) para_cy[ix,iy] = 0.5*( Rho_f[ix,iy]*K_ηf[ix,iy]*Phi[ix,iy]^3 + Rho_f[ix,iy+1]*K_ηf[ix,iy+1]*Phi[ix,iy+1]^3 ) end
@@ -119,7 +96,6 @@ end
 end
 
 @parallel function compute_6!(q_f_X::Data.Array, q_f_Y::Data.Array, q_f_X_Ptot::Data.Array, q_f_Y_Ptot::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Pf::Data.Array, Ptot::Data.Array, _dx::Data.Number, _dy::Data.Number)
-
     @all(q_f_X)      = -@all(para_cx)*@d_xa(Pf)*_dx        # Correct   Darcy flux with fluid pressure
     @all(q_f_Y)      = -@all(para_cy)*@d_ya(Pf)*_dy        # Correct   Darcy flux with fluid pressure
     @all(q_f_X_Ptot) = -@all(para_cx)*@d_xa(Ptot)*_dx      # Incorrect Darcy flux with total pressure
@@ -128,14 +104,12 @@ end
 end
 
 @parallel function compute_7!(∇q_f::Data.Array, Res_Pf::Data.Array, q_f_X::Data.Array, q_f_Y::Data.Array, Rho_t::Data.Array, Rho_t_old::Data.Array, ∇V_ρ_t::Data.Array, dtp::Data.Number, _dx::Data.Number, _dy::Data.Number)
-
     @all(∇q_f)   = @d_xi(q_f_X)*_dx + @d_yi(q_f_Y)*_dy
     @all(Res_Pf) = -@all(∇q_f) -(@inn(Rho_t) - @inn(Rho_t_old))/dtp - @inn(∇V_ρ_t) # CONSERVATION OF TOTAL MASS EQUATION
     return
 end
 
 @parallel function compute_8!(Pf::Data.Array, Rho_X_ϕ::Data.Array, Res_Phi::Data.Array, Phi::Data.Array, Res_Pf::Data.Array, Rho_s::Data.Array, X_s::Data.Array, Phi_old::Data.Array, Rho_X_old::Data.Array, ∇V_ρ_x::Data.Array, dt_Pf::Data.Number, dtp::Data.Number, _dx::Data.Number, _dy::Data.Number)
-
     @inn(Pf)      = @inn(Pf) + dt_Pf*@all(Res_Pf)
     @all(Rho_X_ϕ) = (1.0-@all(Phi))*@all(Rho_s)*@all(X_s)
     @all(Res_Phi) = ( @all(Rho_X_ϕ) - (1.0-@all(Phi_old))*@all(Rho_X_old) )/dtp + @all(∇V_ρ_x)   # CONSERVATION OF MASS OF MgO EQUATION
@@ -145,7 +119,6 @@ end
 
 
 @parallel function compute_9!(∇V::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array, Ptot::Data.Array, Vx::Data.Array, Vy::Data.Array, Phi::Data.Array, Pf::Data.Array, Lam::Data.Array, _dx::Data.Number, _dy::Data.Number)
-
     @all(∇V)   = _dx*@d_xa(Vx) + _dy*@d_ya(Vy)
     @all(ε_xx) = _dx*@d_xa(Vx) - 1/3*@all(∇V)
     @all(ε_yy) = _dy*@d_ya(Vy) - 1/3*@all(∇V)
@@ -155,7 +128,6 @@ end
 end
 
 @parallel function compute_10!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, Eta::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array)
-    
     @all(τ_xx)  = 2.0*@all(Eta)  * @all(ε_xx)    
     @all(τ_yy)  = 2.0*@all(Eta)  * @all(ε_yy) 
     @all(τ_xy)  = 2.0*@av(Eta)   * @all(ε_xy)
@@ -163,31 +135,26 @@ end
 end
 
 @parallel function compute_11!(τII::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, Ptot::Data.Array, τ_xy::Data.Array, _dx::Data.Number, _dy::Data.Number)
-
-    @all(τII)    = sqrt( 0.25*@pow(@all(τ_xx)-@all(τ_yy), 2) + @pow(@all(τ_xyn), 2) )
+    @all(τII)    = sqrt( 0.25*(@all(τ_xx)-@all(τ_yy))^2 + @all(τ_xyn)^2 )
     @all(Res_Vx) = -@d_xi(Ptot)*_dx + @d_xi(τ_xx)*_dx + @d_ya(τ_xy)*_dy  # HORIZONTAL FORCE BALANCE
     @all(Res_Vy) = -@d_yi(Ptot)*_dy + @d_yi(τ_yy)*_dy + @d_xa(τ_xy)*_dx  # VERTICAL   FORCE BALANCE
     return 
 end
 
 @parallel_indices (ix,iy) function compute_12!(Eta_iter::Data.Array, Eta_pl::Data.Array, Eta::Data.Array, Eta_m::Data.Array, τII::Data.Array, σ_ref::Data.Number, n_exp::Data.Number, relax::Data.Number)
-
     if (ix<=size(Eta_iter,1) && iy<=size(Eta_iter,2))  Eta_iter[ix,iy] = Eta_pl[ix,iy] end                                    # Previous PT viscosity
-    if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]   = Eta_m[ix,iy]*@pow(τII[ix,iy]/σ_ref, 1-n_exp) end
+    if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]   = Eta_m[ix,iy]*(τII[ix,iy]/σ_ref)^(1-n_exp) end
     if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    if (τII[ix,iy]<σ_ref) Eta_pl[ix,iy] = Eta_m[ix,iy]; end; end #η_m
-    if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]    = exp(@log(Eta_pl[ix,iy])*relax + @log(Eta_iter[ix,iy])*(1-relax)) end
+    if (ix<=size(Eta_pl,1)   && iy<=size(Eta_pl,2))    Eta_pl[ix,iy]    = exp(log(Eta_pl[ix,iy])*relax + log(Eta_iter[ix,iy])*(1-relax)) end
     if (ix<=size(Eta,1)      && iy<=size(Eta,2))       Eta[ix,iy]       = 2.0/( 1.0/Eta_m[ix,iy] + 1.0/Eta_pl[ix,iy] ) end
     return 
 end
 
 @parallel function compute_13!(Vx::Data.Array, Vy::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, dt_Stokes::Data.Number)
-
     @inn(Vx) = @inn(Vx) + dt_Stokes*@all(Res_Vx)   # Pseudo-transient form of horizontal force balance
     @inn(Vy) = @inn(Vy) + dt_Stokes*@all(Res_Vy)   # Pseudo-transient form of vertical force balance
     return 
 end
-
-
 ##################################################
 @views function PT_HMC()
     # read in mat file
@@ -226,10 +193,8 @@ end
     ly              = ly_lx*lx             # Model height [m]
     P_LU            = P_LU*Pini_Pappl      # Transform look-up table stress to PT stress scale
     # Numerical resolution
-    BLOCK_X,BLOCK_Y = 16, 16
-    GRID_X, GRID_Y  = 8,  8
-    nx              = GRID_X*BLOCK_X - 1 # -1 due to overlength of array nx+1
-    ny              = GRID_Y*BLOCK_Y - 1 # -1 due to overlength of array ny+1
+    nx              = 8*16 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    ny              = 8*16 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     tol             = 2e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dtp             = 2e0*rad^2/(k_ηf/β_eff)           # Time step physical
@@ -238,8 +203,6 @@ end
     itmax           = 5e4
     nout            = 1e3
     # Configuration of grid, matrices and numerical parameters
-    cuthreads       = (BLOCK_X, BLOCK_Y, 1)
-    cublocks        = (GRID_X , GRID_Y , 1)
     dx, dy          = lx/(nx-1), ly/(ny-1)             # Grid spacing
     xc, yc          = -lx/2:dx:lx/2, -ly/2:dy:ly/2     # Coordinate vector
     xv, yv          = -lx/2-dx/2:dx:lx/2+dx/2, -ly/2-dy/2:dy:ly/2+dy/2  # Horizontal vector for Vx which is one more than basic grid
@@ -339,33 +302,25 @@ end
     # time loop
     while timeP < time_tot
     	err_M=2*tol; itp+=1.0
-    	timeP=timeP+dtp; push!(Time_vec, timeP)
-
-        @parallel cublocks cuthreads compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Rho_s, Rho_f, X_s, Phi, Ptot)
-        
-        if itp==1  @parallel cublocks cuthreads compute_2!(Rho_X_ini, Phi_old, Phi_ini, Phi, Rho_s_ini, X_s_ini, Rho_X_old, ϕ_ini) end
-    	
+        timeP=timeP+dtp; push!(Time_vec, timeP)
+        @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Rho_s, Rho_f, X_s, Phi, Ptot)
+        if itp==1  @parallel compute_2!(Rho_X_ini, Phi_old, Phi_ini, Phi, Rho_s_ini, X_s_ini, Rho_X_old, ϕ_ini) end
     	max_min_ϕ_2 = (maximum(Phi)+minimum(Phi))/2.0
-
-    	@parallel cublocks cuthreads compute_3!(Eta_m, Lam, Phi, η_m, η_i_fac, λ, λ_i_fac, max_min_ϕ_2)
-        
-        @parallel cublocks cuthreads compute_4!(Eta_pl, Eta, Rho_t_old, Eta_m, Rho_f_old, Phi_old, Rho_s_old)
-
+    	@parallel compute_3!(Eta_m, Lam, Phi, η_m, η_i_fac, λ, λ_i_fac, max_min_ϕ_2)
+        @parallel compute_4!(Eta_pl, Eta, Rho_t_old, Eta_m, Rho_f_old, Phi_old, Rho_s_old)
     	# PT loop
     	it_tstep=0; err_evo1=[]; err_evo2=[]
         dt_Stokes, dt_Pf = cfl*max_dxdy2, cfl*max_dxdy2
     	while err_M>tol && it_tstep<itmax
             it+=1; it_tstep+=1
-
             if mod(it_tstep, 500)==0 || it_tstep==1
                 dt_Stokes = cfl*max_dxdy2/maximum(Eta)                       # Pseudo time step for Stokes
                 dt_Pf     = cfl*max_dxdy2/maximum(K_ηf.*Phi.^3/β_eff)  # Pseudo time step for fluid pressure
             end
             # Fluid pressure evolution
-            @parallel cublocks cuthreads compute_5!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, K_ηf)
-            @parallel cublocks cuthreads compute_6!(q_f_X, q_f_Y, q_f_X_Ptot, q_f_Y_Ptot, para_cx, para_cy, Pf, Ptot, _dx, _dy)
-            @parallel cublocks cuthreads compute_7!(∇q_f, Res_Pf, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, dtp, _dx, _dy)
-
+            @parallel compute_5!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, K_ηf)
+            @parallel compute_6!(q_f_X, q_f_Y, q_f_X_Ptot, q_f_Y_Ptot, para_cx, para_cy, Pf, Ptot, _dx, _dy)
+            @parallel compute_7!(∇q_f, Res_Pf, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, dtp, _dx, _dy)
             if mod(it_tstep, 100)==0 || it_tstep==1 # Look up for densities
                 Pf_tmp .= Array( Pf )
                 Rho_s  .= Data.Array( itp1.(Pf_tmp)./ρ_0 )
@@ -373,29 +328,24 @@ end
                 X_s    .= Data.Array( itp3.(Pf_tmp)      )
             end
             # Porosity evolution
-            @parallel cublocks cuthreads compute_8!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_x, dt_Pf, dtp, _dx, _dy)
+            @parallel compute_8!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_x, dt_Pf, dtp, _dx, _dy)
             # Stokes
-            @parallel cublocks cuthreads swell2!(TmpX, Rho_X_ϕ, 1)
-            @parallel cublocks cuthreads swell2!(TmpY, Rho_X_ϕ, 2)
-            @parallel cublocks cuthreads cum_mult2!(TmpX, TmpY, Vx, Vy)
-            @parallel cublocks cuthreads laplace!(∇V_ρ_x, TmpX, TmpY, _dx, _dy)
-
-            @parallel cublocks cuthreads swell2!(TmpX, Rho_t, 1)
-            @parallel cublocks cuthreads swell2!(TmpY, Rho_t, 2)
-            @parallel cublocks cuthreads cum_mult2!(TmpX, TmpY, Vx, Vy)
-            @parallel cublocks cuthreads laplace!(∇V_ρ_t, TmpX, TmpY, _dx, _dy)
-        	
-            @parallel cublocks cuthreads compute_9!(∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Pf, Lam, _dx, _dy)
-            @parallel cublocks cuthreads compute_10!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
-        	
-            @parallel cublocks cuthreads swell2!(TmpS1, τ_xy,  1)
-            @parallel cublocks cuthreads swell2!(τ_xyn, TmpS1, 2)
-            @parallel cublocks cuthreads compute_11!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, _dx, _dy)
+            @parallel swell2!(TmpX, Rho_X_ϕ, 1)
+            @parallel swell2!(TmpY, Rho_X_ϕ, 2)
+            @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
+            @parallel laplace!(∇V_ρ_x, TmpX, TmpY, _dx, _dy)
+            @parallel swell2!(TmpX, Rho_t, 1)
+            @parallel swell2!(TmpY, Rho_t, 2)
+            @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
+            @parallel laplace!(∇V_ρ_t, TmpX, TmpY, _dx, _dy)
+            @parallel compute_9!(∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Pf, Lam, _dx, _dy)
+            @parallel compute_10!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
+            @parallel swell2!(TmpS1, τ_xy,  1)
+            @parallel swell2!(τ_xyn, TmpS1, 2)
+            @parallel compute_11!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, _dx, _dy)
             # power-law
-            if n_exp>1 @parallel cublocks cuthreads compute_12!(Eta_iter, Eta_pl, Eta, Eta_m, τII, σ_ref, n_exp, relax) end
-
-            @parallel cublocks cuthreads compute_13!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
-
+            if n_exp>1 @parallel compute_12!(Eta_iter, Eta_pl, Eta, Eta_m, τII, σ_ref, n_exp, relax) end
+            @parallel compute_13!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
             if mod(it_tstep, nout)==0 && it_tstep>250
                 err_Mx   = dt_Stokes*maximum(abs.(Res_Vx)/maximum(abs.(Vx)))    # Error horizontal velocitiy
                 err_My   = dt_Stokes*maximum(abs.(Res_Vy)/maximum(abs.(Vy)))    # Error vertical velocity
@@ -416,31 +366,32 @@ end
     swell2s!(Vy_f, Array(q_f_Y)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
     swell2s!(Vx_f_Ptot, Array(q_f_X_Ptot)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
     swell2s!(VY_f_Ptot, Array(q_f_Y_Ptot)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
-
     Length_model_m = rad
     Time_model_sec = rad^2/(k_ηf/β_eff)
     Length_phys_m  = 0.01
     Time_phys_sec  = 0.01^2/(1e-19/1e-3/(1e-2/8.5e8))
     Vel_phys_m_s   = (Length_phys_m/Length_model_m) / (Time_phys_sec/Time_model_sec)
-    lw = 1.2
-    p2  = heatmap(xc, yc, Array(Pf)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="A) p_f [kbar]")
+    lw = 1.2; TFS = 10
+    p2  = heatmap(xc, yc, Array(Pf)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="A) p_f [kbar]", titlefontsize=TFS)
     	    plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p3  = heatmap(xc, yc, Array(Ptot)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="B) p [kbar]")
+    p3  = heatmap(xc, yc, Array(Ptot)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="B) p [kbar]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p4  = heatmap(xc, yc, Array(∇V)'.*Time_model_sec./Time_phys_sec, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="C) ∇(v_s) [1/s]")
+    p4  = heatmap(xc, yc, Array(∇V)'.*Time_model_sec./Time_phys_sec, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="C) ∇(v_s) [1/s]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p5  = heatmap(xc, yc, sqrt.(Vx_f.^2 .+ Vy_f.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="D) ||v_f|| [m/s]")
+    p5  = heatmap(xc, yc, sqrt.(Vx_f.^2 .+ Vy_f.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="D) ||v_f|| [m/s]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="E) ||v_s|| [m/s]")
+    p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="E) ||v_s|| [m/s]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p7  = heatmap(xc, yc, sqrt.(Vx_f_Ptot.^2 .+ VY_f_Ptot.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="F) ||v_f||p [m/s]")
+    p7  = heatmap(xc, yc, sqrt.(Vx_f_Ptot.^2 .+ VY_f_Ptot.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="F) ||v_f||p [m/s]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p8  = heatmap(xv[2:end-1], yv[2:end-1], Array(τ_xy)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xv[2], xv[end-1]), ylims=(yv[2], yv[end-1]), c=:viridis, title="G) τxy [MPa]")
-    p9  = heatmap(xc, yc, Array(τII)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="H) τII [MPa]")
+    p8  = heatmap(xv[2:end-1], yv[2:end-1], Array(τ_xy)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xv[2], xv[end-1]), ylims=(yv[2], yv[end-1]), c=:hot, title="G) τxy [MPa]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="I) ηs [Pas]")
+    p9  = heatmap(xc, yc, Array(τII)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="H) τII [MPa]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
-    display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10))
+    p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:hot, title="I) ηs [Pas]", titlefontsize=TFS)
+            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false)
+    display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray))
+    # savefig("PT_HMC_$(nx)_$(ny).png")
     return
 end
 

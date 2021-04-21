@@ -1,20 +1,15 @@
-# PseudoTransientHMC
-
-[![Build Status](https://travis-ci.com/luraess/PseudoTransientHMC.jl.svg?branch=master)](https://travis-ci.com/luraess/PseudoTransientHMC.jl)
-
-## Pseudo-transient Hydro-Mechanical-Chemical routines
-This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simulation of brucite-periclase reactions. The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
-
+# Pseudo-transient Hydro-Mechanical-Chemical (HMC)
+This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simulation of brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351). The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
 
 ## Content
 * [Script list](#script-list)
 * [Usage](#usage)
 * [Output](#output)
 * [To-Do](#to-do)
-
+* [References](#references)
 
 ## Script list
-The [/scripts](/scripts/) folder contains the current Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables
+The [scripts](/scripts/) folder contains the current Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables
 - `PT_HMC_v4.jl`
 - `HMC_Public.m`
 - `LOOK_UP_HMC_Pub.mat`
@@ -37,13 +32,13 @@ const USE_GPU  = false  # true
 ```sh
 % julia --project
 ```
-2. Activate and instantiate the environment
+2. Activate and instantiate the environment to download all required dependencies:
 ```julia-repl
 julia> ]
 
-(PseudoTransientHMC) pkg> instantiate
+(PseudoTransientHMC) pkg> activate .
 
-julia> 
+(PseudoTransientHMC) pkg> instantiate
 ```
 3. Run the script
 ```julia-repl
@@ -61,7 +56,7 @@ Additional startup flag infos can be found [here](https://docs.julialang.org/en/
 ## Output
 The output of running the script on an Nvidia TitanXp GPU with `nx=1023, ny=1023` is following
 
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1024x1024.png)
+![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_127x127.png)
 
 
 ## To-Do
@@ -73,6 +68,9 @@ The output of running the script on an Nvidia TitanXp GPU with `nx=1023, ny=1023
   - with references and cross-refs
   - further links to GPU-related computing, Julia-related computing, to stencil-based HPC Julia modules and distributed memory parallelisation Julia modules
 - certainly more to come... stay tuned
+
+## References
+[Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). 2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
 
 [CUDA.jl]: https://github.com/JuliaGPU/CUDA.jl
 [Julia Plots package]: https://github.com/JuliaPlots/Plots.jl
