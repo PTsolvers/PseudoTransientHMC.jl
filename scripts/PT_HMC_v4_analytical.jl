@@ -34,7 +34,7 @@ end
         if (   ix==1           && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix  ,iy] - 0.5*A[ix+1,iy]  end
         if (   ix==size(B,1)   && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix-1,iy] - 0.5*A[ix-2,iy]  end
     elseif ndim==2
-        if (ix<=size(B,1) && 2<=iy<=size(B,2)-2)  B[ix,iy] = 0.5*(A[ix,iy  ] +     A[ix,iy-1]) end
+        if (ix<=size(B,1) && 2<=iy<=size(B,2)-1)  B[ix,iy] = 0.5*(A[ix,iy  ] +     A[ix,iy-1]) end
         if (ix<=size(B,1) &&    iy==1          )  B[ix,iy] =  1.5*A[ix,iy  ] - 0.5*A[ix,iy+1]  end
         if (ix<=size(B,1) &&    iy==size(B,2)  )  B[ix,iy] =  1.5*A[ix,iy-1] - 0.5*A[ix,iy-2]  end
     end
@@ -185,11 +185,11 @@ end
     η_i_fac         = 1e-3         # Factor, how much solid SHEAR viscosity of inclusion is larger (factor>1) or smaller than surrounding
     λ_i_fac         = 1.0          # Factor, how much solid BULK viscosity of inclusion is larger (factor>1) or smaller than surrounding
     n_exp           = 3.0          # Stress exponent of matrix; n=1 means linear viscous
-    λ_η             = 1e0          # λ_η = λ / η_m; []; Ratio of bulk to shear viscosity
+    lx_rad          = 10.0         # Model width divided by inclusion rad
     lc_rad2         = 1e8          # lc_rad2 = k_ηf*η_m/rad^2; []; Ratio of hydraulic fluid extraction to compaction extraction
+    λ_η             = 1e0          # λ_η = λ / η_m; []; Ratio of bulk to shear viscosity
     Da              = 0.0024       # Da   = ε_bg*η_m/P_ini; []; Ratio of viscous stress to initial stress
     σ_y             = 0.024        # Stress_ref / P_ini; []; Reference stress used for power-law viscous flow law
-    lx_rad          = 10.0         # Model width divided by inclusion rad
     ly_lx           = 1.0          # Model height divided by model width
     Pini_Pappl      = P_ini/8.5e8  # Dimensionless ratio of abritrary model-P_ini to P_ini in applicable Pa-values; necessary for Look-up table
     # Dependant parameters
@@ -205,7 +205,7 @@ end
     # Numerical resolution
     nx              = 8*16 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
     ny              = 8*16 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
-    tol             = 2e-5                             # Tolerance for pseudo-transient iterations
+    tol             = 1e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dtp             = 2e0*rad^2/(k_ηf/β_eff)           # Time step physical
     time_tot        = 1.0*dtp                          # Total time of simulation
