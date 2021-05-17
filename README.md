@@ -10,10 +10,10 @@ This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) r
 
 ## Script list
 The [scripts](scripts/) folder contains the Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables. The "analytical" script include a paramtetrisation of the solid and fluid densities and composition as function of fluid pressure to circumvent costly interpolation operations:
-- `HMC_Public.m`
-- `PT_HMC_v4_analytical.jl`
+- [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytical.jl)
 - `PT_HMC_v4.jl`
 - `HMC_Public_analytical.m`
+- `HMC_Public.m`
 - `LOOK_UP_HMC_Pub.mat`
 
 The [tmp](tmp/) folder contains previous, dev, and on-work versions of the main scripts.
