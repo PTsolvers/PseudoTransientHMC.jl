@@ -1,8 +1,5 @@
-name = "PseudoTransientHMC"
-uuid = "23ee6f83-38e1-4b4a-9f65-8b0f5e70fc17"
-authors = ["Ludovic Räss <ludovic.rass@gmail.com> and contributors"]
-
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 ParallelStencil = "94395366-693c-11ea-3b26-d9b7aac5d958"
