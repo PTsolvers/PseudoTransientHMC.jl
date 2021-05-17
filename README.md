@@ -63,7 +63,7 @@ Additional startup flag infos can be found [here](https://docs.julialang.org/en/
 
 The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytical.jl) script
 
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_127x127.png)
+![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
 
 
 
