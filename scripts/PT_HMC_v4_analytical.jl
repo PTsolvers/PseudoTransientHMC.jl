@@ -262,6 +262,7 @@ end
     X_s             = Data.Array(  -tanh.( 5e2*(Pf.-p_reactA) )*x_difA/2.0 .+ x_difA/2.0 .+ x_minA )
     Rho_s_ini       = Data.Array( (-tanh.( 5e2*(P_ini*ones(nx,ny).-p_reactA) )*rho_s_difA/2.0 .+ rho_s_difA/2.0 .+ rho_s_minA .+ Slope_iniA)/ρ_0 )
     X_s_ini         = Data.Array(  -tanh.( 5e2*(P_ini*ones(nx,ny).-p_reactA) )*x_difA/2.0 .+ x_difA/2.0 .+ x_minA )
+    SlopeA          = Data.Array( SlopeA )
     # Initialize ALL arrays in Julia
     Ptot            = @zeros(nx  , ny  )               # Initial ambient fluid pressure
     ∇V              = @zeros(nx  , ny  )
