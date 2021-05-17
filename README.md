@@ -56,12 +56,7 @@ julia> include("PT_HMC_v4_analytical.jl")
 Additional startup flag infos can be found [here](https://docs.julialang.org/en/v1/manual/getting-started/#man-getting-started)
 
 ## Output
-<!-- The output of running the[`PT_HMC_v4.jl`](scripts/PT_HMC_v4.jl) script on an Nvidia TitanXp GPU with `nx=1023, ny=1023`:
-
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
- -->
-
-The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytical.jl) script
+The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytical.jl) script on an Nvidia TitanXp GPU with `nx=1023, ny=1023`:
 
 ![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
 
