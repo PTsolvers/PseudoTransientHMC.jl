@@ -9,12 +9,14 @@ This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) r
 * [References](#references)
 
 ## Script list
-The [scripts](/scripts/) folder contains the current Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables
-- `PT_HMC_v4.jl`
+The [scripts](scripts/) folder contains the Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables. The "analytical" script include a paramtetrisation of the solid and fluid densities and composition as function of fluid pressure to circumvent costly interpolation operations:
 - `HMC_Public.m`
+- `PT_HMC_v4.jl`
+- `HMC_Public_analytical.m`
+- `PT_HMC_v4_analytical.jl`
 - `LOOK_UP_HMC_Pub.mat`
 
-The [/tmp](/tmp/) folder contains previous, dev, and on-work versions of the main scripts.
+The [tmp](tmp/) folder contains previous, dev, and on-work versions of the main scripts.
 
 ## Usage
 If not stated otherwise, all the routines are written in Julia and can be executed from the [Julia REPL], or from the terminal for improved performance. Output is produced using the [Julia Plots package].
@@ -42,21 +44,27 @@ julia> ]
 ```
 3. Run the script
 ```julia-repl
-julia> include("PT_HMC_v4.jl")
+julia> include("PT_HMC_v4_analytical.jl")
 ```
 
 ### Example running the routine from the terminal
 
 1. Launch the Julia executable using the project's dependencies `--project`, disabling array bound checking for enhanced performance `--check-bounds=no`, and using optimization level 3 `-O3`.
 ```sh
-% julia --project --check-bounds=no -O3 PT_HMC_v4.jl
+% julia --project --check-bounds=no -O3 PT_HMC_v4_analytical.jl
 ```
 Additional startup flag infos can be found [here](https://docs.julialang.org/en/v1/manual/getting-started/#man-getting-started)
 
 ## Output
-The output of running the script on an Nvidia TitanXp GPU with `nx=1023, ny=1023` is following
+The output of running the[`PT_HMC_v4.jl`](scripts/PT_HMC_v4.jl) script on an Nvidia TitanXp GPU with `nx=1023, ny=1023`:
 
 ![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
+
+
+The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytical.jl) script
+
+![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_127x127.png)
+
 
 
 ## To-Do
