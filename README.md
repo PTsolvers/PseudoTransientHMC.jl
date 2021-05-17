@@ -11,9 +11,9 @@ This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) r
 ## Script list
 The [scripts](scripts/) folder contains the Julia routine, the published Matlab version of it and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables. The "analytical" script include a paramtetrisation of the solid and fluid densities and composition as function of fluid pressure to circumvent costly interpolation operations:
 - `HMC_Public.m`
+- `PT_HMC_v4_analytical.jl`
 - `PT_HMC_v4.jl`
 - `HMC_Public_analytical.m`
-- `PT_HMC_v4_analytical.jl`
 - `LOOK_UP_HMC_Pub.mat`
 
 The [tmp](tmp/) folder contains previous, dev, and on-work versions of the main scripts.
@@ -23,7 +23,7 @@ If not stated otherwise, all the routines are written in Julia and can be execut
 
 The either multi-threaded CPU or GPU backend can be selected by adding the appropriate flag to the `USE_GPU` constant 
 ```julia
-const USE_GPU  = false  # true
+const USE_GPU  = false
 ```
 - Selecting `false` will use the `Base.threads` backend. Multi-threading can be enabled by defining and exporting the `JULIA_NUM_THREADS` environment variable (e.g. `export JULIA_NUM_THREADS=2` prior to launching Julia will enable the code to run on 2 CPU threads). 
 - Selecting `true` will use the [CUDA.jl] GPU backend and will succeed if a CUDA-capable GPU is available.
@@ -75,7 +75,7 @@ The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytic
 - complete the README
   - with references and cross-refs
   - further links to GPU-related computing, Julia-related computing, to stencil-based HPC Julia modules and distributed memory parallelisation Julia modules
-- certainly more to come... stay tuned
+- certainly more to come...
 
 ## References
 [Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). 2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
