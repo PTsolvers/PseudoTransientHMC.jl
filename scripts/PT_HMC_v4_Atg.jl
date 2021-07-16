@@ -8,7 +8,7 @@ using ParallelStencil.FiniteDifferences2D
 else
     @init_parallel_stencil(Threads, Float64, 2)
 end
-using Plots, Printf, Statistics, LinearAlgebra, MAT, Interpolations
+using Plots, Printf, Statistics, LinearAlgebra, MAT
 ##################################################
 @views av_xy(A) = 0.25*(A[1:end-1,1:end-1].+A[2:end,1:end-1].+A[1:end-1,2:end].+A[2:end,2:end])
 @views av_xa(A) =  0.5*(A[1:end-1,:].+A[2:end,:])
@@ -314,7 +314,7 @@ end
     itp             = 0                           # Integer count for time loop
     save_count      = 0 
     Time_vec        = []
-    it_viz          = 0
+    it_viz = 0; !ispath("output") && mkdir("output")
     # time loop
     while timeP < time_tot
         # if ires==1 load restart file; ires = 0
@@ -382,27 +382,31 @@ end
             Length_phys_m  = 0.01
             Time_phys_sec  = 0.01^2/(1e-19/1e-3/(1e-2/8.5e8))
             Vel_phys_m_s   = (Length_phys_m/Length_model_m) / (Time_phys_sec/Time_model_sec)
-            lw = 1.2; TFS = 10
-            p2  = heatmap(xc, yc, Array(Pf)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="A) p_f [kbar]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p3  = heatmap(xc, yc, Array(Ptot)'./Pini_Pappl./1e8, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="B) p [kbar]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p4  = heatmap(xc, yc, Array(∇V)'.*Time_model_sec./Time_phys_sec, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="C) ∇(v_s) [1/s]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p5  = heatmap(xc, yc, sqrt.(Vx_f.^2 .+ Vy_f.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="D) ||v_f|| [m/s]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="E) ||v_s|| [m/s]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p7  = heatmap(xc, yc, sqrt.(Vx_f_Ptot.^2 .+ VY_f_Ptot.^2)'*Vel_phys_m_s, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="F) ||v_f||p [m/s]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p8  = heatmap(xv[2:end-1], yv[2:end-1], Array(τ_xy)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xv[2], xv[end-1]), ylims=(yv[2], yv[end-1]), c=:viridis, title="G) τxy [MPa]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p9  = heatmap(xc, yc, Array(τII)'/Pini_Pappl/1e6, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="H) τII [MPa]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="I) ηs [Pas]", titlefontsize=TFS)
-            plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
-            display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=150))
-            savefig("PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
+            lw = 1.2; fontsize = 8
+            opts1 = (aspect_ratio=1, yaxis=font(fontsize, "Courier"), xaxis=font(fontsize, "Courier"), 
+                     ticks=nothing, framestyle=:box, titlefontsize=fontsize, titlefont="Courier", colorbar_title="",
+                     xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c = cgrad(:davos, rev = true) )
+            opts2 = (linewidth=lw, linecolor="white", legend=false, framestyle=:box)
+            p2  = heatmap(xc, yc, Array(Pf)'./Pini_Pappl./1e8; title="A) p_f [kbar]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2... )
+            p3  = heatmap(xc, yc, Array(Ptot)'./Pini_Pappl./1e8; title="B) p [kbar]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p4  = heatmap(xc, yc, Array(∇V)'.*Time_model_sec./Time_phys_sec; title="C) ∇(v_s) [1/s]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p5  = heatmap(xc, yc, sqrt.(Vx_f.^2 .+ Vy_f.^2)'*Vel_phys_m_s; title="D) ||v_f|| [m/s]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s; title="E) ||v_s|| [m/s]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p7  = heatmap(xc, yc, sqrt.(Vx_f_Ptot.^2 .+ VY_f_Ptot.^2)'*Vel_phys_m_s; title="F) ||v_f||p [m/s]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p8  = heatmap(xv[2:end-1], yv[2:end-1], Array(τ_xy)'/Pini_Pappl/1e6; title="G) τxy [MPa]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p9  = heatmap(xc, yc, Array(τII)'/Pini_Pappl/1e6; title="H) τII [MPa]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            p10 = heatmap(xc, yc, Array(Eta)'*1e20; title="I) ηs [Pas]", opts1...)
+            # plot!(XY_elli[1], XY_elli[2]; opts2...)
+            display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=300))
+            savefig("output/PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
         end
     end
     return
