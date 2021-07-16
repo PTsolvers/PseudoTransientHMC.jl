@@ -1,5 +1,5 @@
-const USE_GPU  = false  # Use GPU? If this is set false, then the CUDA packages do not need to be installed! :)
-const GPU_ID   = 0
+const USE_GPU = false
+const GPU_ID  = 0
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 @static if USE_GPU
@@ -174,9 +174,6 @@ end
     α               = 0.0          # Counterclockwise α of long axis with respect to vertical direction
     ϕ_ini           = 4e-2         # Initial porosity
     ϕ_exp           = 30.0         # Parameter controlling viscosity-porosity relation
-    # η_i_fac         = 1e-3         # Factor, how much solid SHEAR viscosity of inclusion is larger (factor>1) or smaller than surrounding
-    # λ_i_fac         = 1.0          # Factor, how much solid BULK viscosity of inclusion is larger (factor>1) or smaller than surrounding
-    # n_exp           = 3.0          # Stress exponent of matrix; n=1 means linear viscous
     lx_rad          = 40.0         # Model width divided by inclusion rad
     lc_rad2         = 1e1          # lc_rad2 = k_ηf*η_m/rad^2; []; Ratio of hydraulic fluid extraction to compaction extraction
     λ_η             = 2.0          # λ_η = λ / η_m; []; Ratio of bulk to shear viscosity
@@ -185,13 +182,8 @@ end
     ly_lx           = 1.0          # Model height divided by model width
     Pini_Pappl      = P_ini/12.8e8 # Dimensionless ratio of abritrary model-P_ini to P_ini in applicable Pa-values; necessary for Look-up table
     # Dependant parameters
-    # β_eff           = 1e-2/P_ini           # Effective compressibility used only to determine PT time step [1/Pa]
     K_s             = 1e11*Pini_Pappl      # Solid elastic bulk modulus
     k_ηf            = lc_rad2*rad^2/η_m    # Permeability divided by fluid viscosity; [m^2/(Pa s)]
-    # P_pert          = 0.2*P_ini            # Pressure perturbation [Pa]
-    # λ               = λ_η*η_m              # Bulk viscosity [Pa s]
-    # ε_bg            = Da*P_ini/η_m         # Background strain rate in matrix [1/s]
-    # σ_ref           = σ_y*P_ini            # Stress reference for power-law viscosity
     lx              = lx_rad*rad           # Model width [m]
     ly              = ly_lx*lx             # Model height [m]
     P_LU            = P_LU*Pini_Pappl      # Transform look-up table stress to PT stress scale
@@ -206,13 +198,12 @@ end
     ε_bg            = 1.0 / τ_deform
     Da              = ε_bg/(P_ini/η_m)   # Re-scaling of Da (LAMBDA_4)
     # Numerical resolution
-    nx              = 16*16 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    ny              = 16*16 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
+    nx              = 24*16 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    ny              = 24*16 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     tol             = 1e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dtp             = τ_f_dif / 2.0                    # Time step physical
     time_tot        = 5e3*dtp                          # Total time of simulation
-    # relax           = 0.5
     itmax           = 5e4
     nout            = 1e3
     kin_time        = 1e1*τ_f_dif_ϕ
@@ -318,12 +309,12 @@ end
     Ptot           .= Pf                          # Initial total pressure
     # Parameters for time loop and pseudo-transient iterations
     max_dxdy2       = max(dx,dy).^2
-    # max_min_ϕ_2     = (maximum(Phi)+minimum(Phi))/2.0
     timeP           = 0.0                         # Initial time
     it              = 0                           # Integer count for iteration loop
     itp             = 0                           # Integer count for time loop
     save_count      = 0 
     Time_vec        = []
+    it_viz          = 0
     # time loop
     while timeP < time_tot
         # if ires==1 load restart file; ires = 0
@@ -378,10 +369,10 @@ end
                 @printf("iter = %d, error = %1.3e \n", it_tstep, err_M)
             end
         end # end PT loop
-        @printf("it = %d, timeP = %1.2f (Tot. time = %1.2f) \n", itp, round(timeP, sigdigits=2), round(time_tot, sigdigits=2))
+        println("it = $(itp), time = $(round(timeP, sigdigits=3)) (time_tot = $(round(time_tot, sigdigits=3)))")
         # Visu
         if itp % 2e1 == 1 || itp == 1
-            println("itp = $itp")
+            it_viz += 1
             swell2s!(Vx_f, Array(q_f_X)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
             swell2s!(Vy_f, Array(q_f_Y)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
             swell2s!(Vx_f_Ptot, Array(q_f_X_Ptot)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
@@ -411,7 +402,7 @@ end
             p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="I) ηs [Pas]", titlefontsize=TFS)
             plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
             display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=150))
-            # savefig("PT_HMC_$(nx)x$(ny).png")
+            savefig("PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
         end
     end
     return
