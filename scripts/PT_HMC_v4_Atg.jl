@@ -65,7 +65,7 @@ end
 end
 ##################################################
 
-@parallel function compute_1!(Rho_s_old::Data.Array, Rho_f_old::Data.Array, X_s_old::Data.Array, Rho_X_old::Data.Array, Phi_old::Data.Array, Ptot_old::Data.Array, Pf_old::Data.Array, Rho_s::Data.Array, Rho_f::Data.Array, X_s::Data.Array, Phi::Data.Array, Ptot::Data.Array, Pf::Data.Array)
+@parallel function compute_1!(Rho_s_old::Data.Array, Rho_f_old::Data.Array, X_s_old::Data.Array, Rho_X_old::Data.Array, Phi_old::Data.Array, Ptot_old::Data.Array, Pf_old::Data.Array, Rho_t_old::Data.Array, Eta::Data.Array, Lam::Data.Array, Rho_s::Data.Array, Rho_f::Data.Array, X_s::Data.Array, Phi::Data.Array, Ptot::Data.Array, Pf::Data.Array, η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number)
     @all(Rho_s_old) = @all(Rho_s)
     @all(Rho_f_old) = @all(Rho_f)
     @all(X_s_old)   = @all(X_s)
@@ -73,24 +73,20 @@ end
     @all(Ptot_old)  = @all(Ptot)
     @all(Pf_old)    = @all(Pf)
     @all(Rho_X_old) = @all(Rho_s_old)*@all(X_s_old)
-    return
-end
-
-@parallel function compute_2!(Rho_t_old::Data.Array, Eta::Data.Array, Lam::Data.Array, Rho_f_old::Data.Array, Phi_old::Data.Array, Rho_s_old::Data.Array, Phi::Data.Array, η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number)
     @all(Rho_t_old) = @all(Rho_f_old)*@all(Phi_old) + @all(Rho_s_old)*(1.0 - @all(Phi_old))
     @all(Eta)       = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
     @all(Lam)       = λ_η*@all(Eta)
     return
 end
 
-@parallel_indices (ix,iy) function compute_3!(Rho_t::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Rho_f::Data.Array, Phi::Data.Array, Rho_s::Data.Array, k_ηf::Data.Number)
+@parallel_indices (ix,iy) function compute_2!(Rho_t::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Rho_f::Data.Array, Phi::Data.Array, Rho_s::Data.Array, k_ηf::Data.Number)
     if (ix<=size(Rho_t,1)   && iy<=size(Rho_t,2))   Rho_t[ix,iy]   = Rho_f[ix,iy]*Phi[ix,iy] + Rho_s[ix,iy]*(1.0-Phi[ix,iy]) end
     if (ix<=size(para_cx,1) && iy<=size(para_cx,2)) para_cx[ix,iy] = 0.5*( Rho_f[ix,iy]*k_ηf*Phi[ix,iy]^3 + Rho_f[ix+1,iy]*k_ηf*Phi[ix+1,iy]^3 ) end
     if (ix<=size(para_cy,1) && iy<=size(para_cy,2)) para_cy[ix,iy] = 0.5*( Rho_f[ix,iy]*k_ηf*Phi[ix,iy]^3 + Rho_f[ix,iy+1]*k_ηf*Phi[ix,iy+1]^3 ) end
     return
 end
 
-@parallel function compute_4!(q_f_X::Data.Array, q_f_Y::Data.Array, q_f_X_Ptot::Data.Array, q_f_Y_Ptot::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Pf::Data.Array, Ptot::Data.Array, dx::Data.Number, dy::Data.Number)
+@parallel function compute_3!(q_f_X::Data.Array, q_f_Y::Data.Array, q_f_X_Ptot::Data.Array, q_f_Y_Ptot::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Pf::Data.Array, Ptot::Data.Array, dx::Data.Number, dy::Data.Number)
     @all(q_f_X)      = -@all(para_cx)*@d_xa(Pf)/dx        # Correct   Darcy flux with fluid pressure
     @all(q_f_Y)      = -@all(para_cy)*@d_ya(Pf)/dy        # Correct   Darcy flux with fluid pressure
     @all(q_f_X_Ptot) = -@all(para_cx)*@d_xa(Ptot)/dx      # Incorrect Darcy flux with total pressure
@@ -98,32 +94,31 @@ end
     return
 end
 
-@parallel function compute_5!(∇q_f::Data.Array, Res_Pf::Data.Array, Rho_f::Data.Array, Rho_s_eq::Data.Array, X_s_eq::Data.Array, q_f_X::Data.Array, q_f_Y::Data.Array, Rho_t::Data.Array, Rho_t_old::Data.Array, ∇V_ρ_t::Data.Array, Pf::Data.Array, SlopeA::Data.Array, 
+@parallel function compute_4!(∇q_f::Data.Array, Res_Pf::Data.Array, Rho_f::Data.Array, Rho_s_eq::Data.Array, X_s_eq::Data.Array, q_f_X::Data.Array, q_f_Y::Data.Array, Rho_t::Data.Array, Rho_t_old::Data.Array, ∇V_ρ_t::Data.Array, Pf::Data.Array, SlopeA::Data.Array, 
                               rho_f_maxA::Data.Number, ρ_0::Data.Number, p_reactA::Data.Number, rho_s_difA::Data.Number, rho_s_up::Data.Number, rho_s_minA::Data.Number, x_difA::Data.Number, x_minA::Data.Number, dtp::Data.Number, dx::Data.Number, dy::Data.Number)
     @all(∇q_f)   = @d_xi(q_f_X)/dx + @d_yi(q_f_Y)/dy
     @all(Res_Pf) = -@all(∇q_f) - (@inn(Rho_t) - @inn(Rho_t_old))/dtp - @inn(∇V_ρ_t) # CONSERVATION OF TOTAL MASS EQUATION
-
     @all(Rho_f)    = (rho_f_maxA * log(@all(Pf) + 1.0)^(1.0/3.5))/ρ_0
     @all(Rho_s_eq) = (-tanh( 6e2*(@all(Pf)-p_reactA) )*(rho_s_difA/2.0 + rho_s_up/3.0) + (rho_s_difA/2.0 - rho_s_up/3.0) + rho_s_minA + @all(SlopeA))/ρ_0
     @all(X_s_eq)   =  -tanh( 6e2*(@all(Pf)-p_reactA) )*x_difA/2.0 + x_difA/2.0 + x_minA
     return
 end
 
-@parallel function compute_6!(X_s::Data.Array, Rho_s::Data.Array, X_s_old::Data.Array, X_s_eq::Data.Array, Rho_s_old::Data.Array, Rho_s_eq::Data.Array, dtp::Data.Number, kin_time::Data.Number)
+@parallel function compute_5!(X_s::Data.Array, Rho_s::Data.Array, X_s_old::Data.Array, X_s_eq::Data.Array, Rho_s_old::Data.Array, Rho_s_eq::Data.Array, dtp::Data.Number, kin_time::Data.Number)
     @all(X_s)   = @all(X_s_old)   + dtp*(@all(X_s_eq)   - @all(X_s)  )/kin_time
     @all(Rho_s) = @all(Rho_s_old) + dtp*(@all(Rho_s_eq) - @all(Rho_s))/kin_time
     return
 end
 
-@parallel function compute_7!(Pf::Data.Array, Rho_X_ϕ::Data.Array, Res_Phi::Data.Array, Phi::Data.Array, Res_Pf::Data.Array, Rho_s::Data.Array, X_s::Data.Array, Phi_old::Data.Array, Rho_X_old::Data.Array, ∇V_ρ_x::Data.Array, dt_Pf::Data.Number, dtp::Data.Number)
+@parallel function compute_6!(Pf::Data.Array, Rho_X_ϕ::Data.Array, Res_Phi::Data.Array, Phi::Data.Array, Res_Pf::Data.Array, Rho_s::Data.Array, X_s::Data.Array, Phi_old::Data.Array, Rho_X_old::Data.Array, ∇V_ρ_X::Data.Array, dt_Pf::Data.Number, dtp::Data.Number)
     @inn(Pf)      = @inn(Pf) + dt_Pf*@all(Res_Pf)
     @all(Rho_X_ϕ) = (1.0-@all(Phi))*@all(Rho_s)*@all(X_s)
-    @all(Res_Phi) = ( @all(Rho_X_ϕ) - (1.0-@all(Phi_old))*@all(Rho_X_old) )/dtp + @all(∇V_ρ_x)   # CONSERVATION OF MASS OF MgO EQUATION
+    @all(Res_Phi) = ( @all(Rho_X_ϕ) - (1.0-@all(Phi_old))*@all(Rho_X_old) )/dtp + @all(∇V_ρ_X)   # CONSERVATION OF MASS OF MgO EQUATION
     @all(Phi)     = @all(Phi) + dtp*@all(Res_Phi)
     return
 end
 
-@parallel function compute_8!(Eta::Data.Array, Lam::Data.Array, ∇V::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array, Ptot::Data.Array, Vx::Data.Array, Vy::Data.Array, Phi::Data.Array, Ptot_old::Data.Array, Pf::Data.Array, Pf_old::Data.Array,
+@parallel function compute_7!(Eta::Data.Array, Lam::Data.Array, ∇V::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array, Ptot::Data.Array, Vx::Data.Array, Vy::Data.Array, Phi::Data.Array, Ptot_old::Data.Array, Pf::Data.Array, Pf_old::Data.Array,
                               η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number, dtp::Data.Number, K_d::Data.Number, α::Data.Number, dx::Data.Number, dy::Data.Number)
     @all(Eta)  = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
     @all(Lam)  = λ_η*@all(Eta)
@@ -135,21 +130,21 @@ end
     return 
 end
 
-@parallel function compute_9!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, Eta::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array)
+@parallel function compute_8!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, Eta::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array)
     @all(τ_xx)  = 2.0*@all(Eta) * @all(ε_xx)    
     @all(τ_yy)  = 2.0*@all(Eta) * @all(ε_yy) 
     @all(τ_xy)  = 2.0*@av(Eta)  * @all(ε_xy)
     return 
 end
 
-@parallel function compute_10!(τII::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, Ptot::Data.Array, τ_xy::Data.Array, dx::Data.Number, dy::Data.Number)
+@parallel function compute_9!(τII::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, Ptot::Data.Array, τ_xy::Data.Array, dx::Data.Number, dy::Data.Number)
     @all(τII)    = sqrt( 0.25*(@all(τ_xx)-@all(τ_yy))^2 + @all(τ_xyn)^2 )
     @all(Res_Vx) = -@d_xi(Ptot)/dx + @d_xi(τ_xx)/dx + @d_ya(τ_xy)/dy  # HORIZONTAL FORCE BALANCE
     @all(Res_Vy) = -@d_yi(Ptot)/dy + @d_yi(τ_yy)/dy + @d_xa(τ_xy)/dx  # VERTICAL   FORCE BALANCE
     return 
 end
 
-@parallel function compute_11!(Vx::Data.Array, Vy::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, dt_Stokes::Data.Number)
+@parallel function compute_10!(Vx::Data.Array, Vy::Data.Array, Res_Vx::Data.Array, Res_Vy::Data.Array, dt_Stokes::Data.Number)
     @inn(Vx) = @inn(Vx) + dt_Stokes*@all(Res_Vx)   # Pseudo-transient form of horizontal force balance
     @inn(Vy) = @inn(Vy) + dt_Stokes*@all(Res_Vy)   # Pseudo-transient form of vertical force balance
     return 
@@ -177,8 +172,6 @@ end
     lx_rad          = 40.0         # Model width divided by inclusion rad
     lc_rad2         = 1e1          # lc_rad2 = k_ηf*η_m/rad^2; []; Ratio of hydraulic fluid extraction to compaction extraction
     λ_η             = 2.0          # λ_η = λ / η_m; []; Ratio of bulk to shear viscosity
-    # Da              = 0.0391       # Da   = ε_bg*η_m/P_ini; []; Ratio of viscous stress to initial stress
-    # σ_y             = 0.024        # Stress_ref / P_ini; []; Reference stress used for power-law viscous flow law
     ly_lx           = 1.0          # Model height divided by model width
     Pini_Pappl      = P_ini/12.8e8 # Dimensionless ratio of abritrary model-P_ini to P_ini in applicable Pa-values; necessary for Look-up table
     # Dependant parameters
@@ -228,14 +221,11 @@ end
     rho_s_up        = 50.0
     Pf              = P_ini*ones(nx, ny) 
     SlopeA          = (Pf.-p_minA)/p_maxA*rho_s_up
-    Slope_iniA      = (P_ini*ones(nx,ny).-p_minA)/p_maxA*rho_s_up
     rho_s_max       = Rho_s_LU[1]
     rho_s_minA      = minimum(Rho_s_LU)
     rho_s_difA      = rho_s_max-rho_s_minA
     p_reactA        = 12.65*1e8*Pini_Pappl
     rho_f_maxA      = maximum(Rho_f_LU) # Parameters for fluid density
-    # rho_f_minA      = minimum(Rho_f_LU)
-    # facA            = 6e3
     x_max           = maximum(X_LU) # Parameters for mass fraction
     x_minA          = minimum(X_LU)
     x_difA          = x_max-x_minA
@@ -247,7 +237,7 @@ end
     # Initialize ALL arrays in Julia
     Ptot            = @zeros(nx  , ny  )               # Initial ambient fluid pressure
     ∇V              = @zeros(nx  , ny  )
-    ∇V_ρ_x          = @zeros(nx  , ny  )
+    ∇V_ρ_X          = @zeros(nx  , ny  )
     ∇V_ρ_t          = @zeros(nx  , ny  )
     τ_xx            = @zeros(nx  , ny  )               # Deviatoric stress
     τ_yy            = @zeros(nx  , ny  )               # Deviatoric stress
@@ -298,11 +288,8 @@ end
     end
     Phi_ini         = Data.Array(Phi_ini)
     Phi             = copy(Phi_ini)
-    Eta             =   η_m*@ones(nx, ny)
-    Lam             =   λ_η*@ones(nx, ny)         # Viscosity
-    # @all(Eta)       = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
-    # @all(Lam)       = λ_η*@all(Eta)
-    # Data.Array for ParallelStencil
+    Eta             =   η_m*@ones(nx, ny)         # Shear viscosity, alternative init:   # @all(Eta) = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
+    Lam             =   λ_η*@ones(nx, ny)         # Bulk viscosity, alternative init:   # @all(Lam) = λ_η*@all(Eta)
     Vx              =  ε_bg*Data.Array(Xc2vx)     # Pure shear, shortening in x
     Vy              = -ε_bg*Data.Array(Yc2vy)     # Pure shear, extension in y
     Pf              = Data.Array(Pf)
@@ -320,8 +307,7 @@ end
         # if ires==1 load restart file; ires = 0
     	err_M = 2*tol; itp += 1
         timeP = timeP+dtp; push!(Time_vec, timeP)
-        @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_s, Rho_f, X_s, Phi, Ptot, Pf)
-        @parallel compute_2!(Rho_t_old, Eta, Lam, Rho_f_old, Phi_old, Rho_s_old, Phi, η_m, ϕ_exp, ϕ_ini, λ_η)
+        @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η)
         kin_time = Kin_time_vec[itp]
     	# PT loop
     	it_tstep=0; err_evo1=[]; err_evo2=[]
@@ -333,35 +319,36 @@ end
                 dt_Pf     = cfl*max_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s)) # Pseudo time step for fluid pressure
             end
             # Fluid pressure evolution
-            @parallel compute_3!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, k_ηf)
-            @parallel compute_4!(q_f_X, q_f_Y, q_f_X_Ptot, q_f_Y_Ptot, para_cx, para_cy, Pf, Ptot, dx, dy)
-            @parallel compute_5!(∇q_f, Res_Pf, Rho_f, Rho_s_eq, X_s_eq, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, Pf, SlopeA, rho_f_maxA, ρ_0, p_reactA, rho_s_difA, rho_s_up, rho_s_minA, x_difA, x_minA, dtp, dx, dy)
-            if (itp > 1) @parallel compute_6!(X_s, Rho_s, X_s_old, X_s_eq, Rho_s_old, Rho_s_eq, dtp, kin_time) end
+            @parallel compute_2!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, k_ηf)
+            @parallel compute_3!(q_f_X, q_f_Y, q_f_X_Ptot, q_f_Y_Ptot, para_cx, para_cy, Pf, Ptot, dx, dy)
+            @parallel compute_4!(∇q_f, Res_Pf, Rho_f, Rho_s_eq, X_s_eq, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, Pf, SlopeA, rho_f_maxA, ρ_0, p_reactA, rho_s_difA, rho_s_up, rho_s_minA, x_difA, x_minA, dtp, dx, dy)
+            if (itp > 1) @parallel compute_5!(X_s, Rho_s, X_s_old, X_s_eq, Rho_s_old, Rho_s_eq, dtp, kin_time) end
             # Porosity evolution
-            @parallel compute_7!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_x, dt_Pf, dtp)
+            @parallel compute_6!(Pf, Rho_X_ϕ, Res_Phi, Phi, Res_Pf, Rho_s, X_s, Phi_old, Rho_X_old, ∇V_ρ_X, dt_Pf, dtp)
             @parallel (1:size(Pf,1)) bc_y!(Pf)
             @parallel (1:size(Pf,2)) bc_x!(Pf)
             # Stokes
             @parallel swell2!(TmpX, Rho_X_ϕ, 1)
             @parallel swell2!(TmpY, Rho_X_ϕ, 2)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
-            @parallel laplace!(∇V_ρ_x, TmpX, TmpY, dx, dy)
+            @parallel laplace!(∇V_ρ_X, TmpX, TmpY, dx, dy)
             @parallel swell2!(TmpX, Rho_t, 1)
             @parallel swell2!(TmpY, Rho_t, 2)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel laplace!(∇V_ρ_t, TmpX, TmpY, dx, dy)
-            @parallel compute_8!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, α, dx, dy)
-            @parallel compute_9!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
+            @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, α, dx, dy)
+            @parallel compute_8!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
             @parallel swell2!(TmpS1, τ_xy,  1)
             @parallel swell2!(τ_xyn, TmpS1, 2)
-            @parallel compute_10!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, dx, dy)
-            @parallel compute_11!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
+            @parallel compute_9!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, dx, dy)
+            @parallel compute_10!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
             if it_tstep % nout == 0 && it_tstep > 250
                 err_Mx   = dt_Stokes*maximum(abs.(Res_Vx)/maximum(abs.(Vx)))    # Error horizontal velocitiy
                 err_My   = dt_Stokes*maximum(abs.(Res_Vy)/maximum(abs.(Vy)))    # Error vertical velocity
                 err_Pf   = dt_Pf*maximum(abs.(Res_Pf)/maximum(abs.(Pf)))        # Error fluid pressure
                 err_Phi  = dtp*maximum(abs.(Res_Phi))                           # Error porosity
                 err_M    = maximum([err_Pf, err_Mx, err_My, err_Phi])           # Error total
+                if isnan(err_M) error("NoNs - stopping simulation.") end
                 err_evo1 = push!(err_evo1, it_tstep); err_evo2 = push!(err_evo2, err_M)
                 # plot evol
                 # p1 = plot(err_evo1, err_evo2, legend=false, xlabel="# iterations", ylabel="log10(error)", linewidth=2, markershape=:circle, markersize=3, labels="max(error)", yaxis=:log10)
