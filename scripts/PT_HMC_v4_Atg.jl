@@ -13,7 +13,7 @@ using Plots, Printf, Statistics, LinearAlgebra, MAT
 @views av_xy(A) = 0.25*(A[1:end-1,1:end-1].+A[2:end,1:end-1].+A[1:end-1,2:end].+A[2:end,2:end])
 @views av_xa(A) =  0.5*(A[1:end-1,:].+A[2:end,:])
 @views av_ya(A) =  0.5*(A[:,1:end-1].+A[:,2:end])
-@views function swell2s!(B, A, ndim)
+@views function swell2h!(B, A, ndim)
     B .= B.*0.0
     if ndim==1
         B[2:end-1,:] .= (A[2:end,:]  .+ A[1:end-1,:])./2.0
@@ -27,17 +27,19 @@ using Plots, Printf, Statistics, LinearAlgebra, MAT
     return B
 end
 
-@parallel_indices (ix,iy) function swell2!(B::Data.Array, A::Data.Array, ndim::Int)
+@parallel_indices (ix,iy) function swell2_x!(B::Data.Array, A::Data.Array)
     if (ix<=size(B,1) && iy<=size(B,2)) B[ix,iy] = 0.0  end
-    if ndim==1
-        if (2<=ix<=size(B,1)-1 && iy<=size(B,2))  B[ix,iy] = 0.5*(A[ix  ,iy] +     A[ix-1,iy]) end
-        if (   ix==1           && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix  ,iy] - 0.5*A[ix+1,iy]  end
-        if (   ix==size(B,1)   && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix-1,iy] - 0.5*A[ix-2,iy]  end
-    elseif ndim==2
-        if (ix<=size(B,1) && 2<=iy<=size(B,2)-1)  B[ix,iy] = 0.5*(A[ix,iy  ] +     A[ix,iy-1]) end
-        if (ix<=size(B,1) &&    iy==1          )  B[ix,iy] =  1.5*A[ix,iy  ] - 0.5*A[ix,iy+1]  end
-        if (ix<=size(B,1) &&    iy==size(B,2)  )  B[ix,iy] =  1.5*A[ix,iy-1] - 0.5*A[ix,iy-2]  end
-    end
+    if (2<=ix<=size(B,1)-1 && iy<=size(B,2))  B[ix,iy] = 0.5*(A[ix  ,iy] +     A[ix-1,iy]) end
+    if (   ix==1           && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix  ,iy] - 0.5*A[ix+1,iy]  end
+    if (   ix==size(B,1)   && iy<=size(B,2))  B[ix,iy] =  1.5*A[ix-1,iy] - 0.5*A[ix-2,iy]  end
+    return 
+end
+
+@parallel_indices (ix,iy) function swell2_y!(B::Data.Array, A::Data.Array)
+    if (ix<=size(B,1) && iy<=size(B,2)) B[ix,iy] = 0.0  end
+    if (ix<=size(B,1) && 2<=iy<=size(B,2)-1)  B[ix,iy] = 0.5*(A[ix,iy  ] +     A[ix,iy-1]) end
+    if (ix<=size(B,1) &&    iy==1          )  B[ix,iy] =  1.5*A[ix,iy  ] - 0.5*A[ix,iy+1]  end
+    if (ix<=size(B,1) &&    iy==size(B,2)  )  B[ix,iy] =  1.5*A[ix,iy-1] - 0.5*A[ix,iy-2]  end
     return 
 end
 
@@ -191,8 +193,8 @@ end
     ε_bg            = 1.0 / τ_deform
     Da              = ε_bg/(P_ini/η_m)   # Re-scaling of Da (LAMBDA_4)
     # Numerical resolution
-    nx              = 24*16 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    ny              = 24*16 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
+    nx              = 384 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    ny              = 384 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     tol             = 1e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dtp             = τ_f_dif / 2.0                    # Time step physical
@@ -226,7 +228,7 @@ end
     rho_s_difA      = rho_s_max-rho_s_minA
     p_reactA        = 12.65*1e8*Pini_Pappl
     rho_f_maxA      = maximum(Rho_f_LU) # Parameters for fluid density
-    x_max           = maximum(X_LU) # Parameters for mass fraction
+    x_max           = maximum(X_LU)     # Parameters for mass fraction
     x_minA          = minimum(X_LU)
     x_difA          = x_max-x_minA
     # Density, compressibility and gamma from concentration and pressure from thermodynamic data base
@@ -301,7 +303,7 @@ end
     itp             = 0                           # Integer count for time loop
     save_count      = 0 
     Time_vec        = []
-    it_viz = 0; !ispath("output") && mkdir("output")
+    it_viz = 0; !ispath("output_$(nx)x$(ny)") && mkdir("output_$(nx)x$(ny)")
     # time loop
     while timeP < time_tot
         # if ires==1 load restart file; ires = 0
@@ -328,18 +330,18 @@ end
             @parallel (1:size(Pf,1)) bc_y!(Pf)
             @parallel (1:size(Pf,2)) bc_x!(Pf)
             # Stokes
-            @parallel swell2!(TmpX, Rho_X_ϕ, 1)
-            @parallel swell2!(TmpY, Rho_X_ϕ, 2)
+            @parallel swell2_x!(TmpX, Rho_X_ϕ)
+            @parallel swell2_y!(TmpY, Rho_X_ϕ)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel laplace!(∇V_ρ_X, TmpX, TmpY, dx, dy)
-            @parallel swell2!(TmpX, Rho_t, 1)
-            @parallel swell2!(TmpY, Rho_t, 2)
+            @parallel swell2_x!(TmpX, Rho_t)
+            @parallel swell2_y!(TmpY, Rho_t)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel laplace!(∇V_ρ_t, TmpX, TmpY, dx, dy)
             @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, α, dx, dy)
             @parallel compute_8!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
-            @parallel swell2!(TmpS1, τ_xy,  1)
-            @parallel swell2!(τ_xyn, TmpS1, 2)
+            @parallel swell2_x!(TmpS1, τ_xy)
+            @parallel swell2_y!(τ_xyn, TmpS1)
             @parallel compute_9!(τII, Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, dx, dy)
             @parallel compute_10!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
             if it_tstep % nout == 0 && it_tstep > 250
@@ -360,10 +362,10 @@ end
         # Visu
         if itp % 2e1 == 1 || itp == 1
             it_viz += 1
-            swell2s!(Vx_f, Array(q_f_X)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
-            swell2s!(Vy_f, Array(q_f_Y)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
-            swell2s!(Vx_f_Ptot, Array(q_f_X_Ptot)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
-            swell2s!(VY_f_Ptot, Array(q_f_Y_Ptot)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
+            swell2h!(Vx_f, Array(q_f_X)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
+            swell2h!(Vy_f, Array(q_f_Y)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
+            swell2h!(Vx_f_Ptot, Array(q_f_X_Ptot)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
+            swell2h!(VY_f_Ptot, Array(q_f_Y_Ptot)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
             Length_model_m = rad
             Time_model_sec = rad^2/(k_ηf*K_s)
             Length_phys_m  = 0.01
@@ -393,7 +395,7 @@ end
             p10 = heatmap(xc, yc, Array(Eta)'*1e20; title="I) ηs [Pas]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
             display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=300))
-            savefig("output/PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
+            savefig("output_$(nx)x$(ny)/PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
         end
     end
     return
