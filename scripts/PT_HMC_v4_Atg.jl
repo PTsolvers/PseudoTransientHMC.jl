@@ -153,7 +153,9 @@ end
 end
 ##################################################
 @views function PT_HMC()
-    # nsave    = 
+    do_save = true
+    nsave   = 20
+    nviz    = 20
     # nrestart = 
     # read in mat file
     vars            = matread("LOOK_UP_atg.mat")
@@ -162,18 +164,18 @@ end
     X_LU            = get(vars, "X_s_vec",1)
     P_LU            = get(vars, "P_vec"  ,1)*1e8
     # Independent parameters
-    rad             = 1.0          # rad of initial P-perturbation [m]
+    rad             = 1.0          # Radius of initial P-perturbation [m]
     η_m             = 1.0          # Viscosity scale [Pa s]
     P_ini           = 1.0          # Initial ambient pressure [Pa]
     ρ_0             = 3000.0       # Density scale [kg/m^3]
     # Nondimensional parameters
     elli_fac        = 2.0          # Use 1 for circle
-    α               = 0.0          # Counterclockwise α of long axis with respect to vertical direction
+    α               = 0.0          # Counterclockwise angle of long axis with respect to vertical direction
     ϕ_ini           = 4e-2         # Initial porosity
     ϕ_exp           = 30.0         # Parameter controlling viscosity-porosity relation
-    lx_rad          = 40.0         # Model width divided by inclusion rad
-    lc_rad2         = 1e1          # lc_rad2 = k_ηf*η_m/rad^2; []; Ratio of hydraulic fluid extraction to compaction extraction
-    λ_η             = 2.0          # λ_η = λ / η_m; []; Ratio of bulk to shear viscosity
+    lx_rad          = 40.0         # LAMBDA_1 in equation (15) in the manuscript; Model height divided by inclusion radius;
+    lc_rad2         = 1e1          # LAMBDA_2 in equation (15) in the manuscript; Lc_rad2 = k_etaf*eta_mat/radius^2; []; Ratio of hydraulic fluid extraction to compaction extraction
+    λ_η             = 2.0          # LAMBDA_3 in equation (15) in the manuscript; lam_eta = lambda / eta_mat; []; Ratio of bulk to shear viscosity
     ly_lx           = 1.0          # Model height divided by model width
     Pini_Pappl      = P_ini/12.8e8 # Dimensionless ratio of abritrary model-P_ini to P_ini in applicable Pa-values; necessary for Look-up table
     # Dependant parameters
@@ -183,7 +185,7 @@ end
     ly              = ly_lx*lx             # Model height [m]
     P_LU            = P_LU*Pini_Pappl      # Transform look-up table stress to PT stress scale
     K_d             = K_s/2.0              # Elastic bulk modulus, drained
-    α               = 1.0 - K_d/K_s        # Biot-Willis coeff
+    α               = 1.0 - K_d/K_s        # Biot-Willis coefficient
     # Characteristic time scales
     τ_f_dif         = rad^2 / (k_ηf        *K_s)
     τ_f_dif_ϕ       = rad^2 / (k_ηf*ϕ_ini^3*K_s)
@@ -197,10 +199,12 @@ end
     ny              = 384 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     tol             = 1e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
-    dtp             = τ_f_dif / 2.0                    # Time step physical
-    time_tot        = 5e3*dtp                          # Total time of simulation
+    dt_fact         = 1.0
+    dtp             = τ_f_dif / 2.0 / dt_fact          # Time step physical
+    time_tot        = dt_fact * 5e3*dtp                # Total time of simulation
     itmax           = 5e4
     nout            = 1e3
+    nsm             = 5                                # number of porosity smoothing steps - explicit diffusion
     kin_time        = 1e1*τ_f_dif_ϕ
     kin_time_final  = τ_kinetic
     Kin_time_vec    = [1e25*τ_f_dif_ϕ; range(kin_time, stop=kin_time_final, length=20); kin_time_final*ones(Int(round(time_tot/dtp)))]
@@ -279,12 +283,10 @@ end
     # arrays for visu
     Vx_f            = zeros(nx  , ny  )
     Vy_f            = zeros(nx  , ny  )
-    Vx_f_Ptot       = zeros(nx  , ny  )
-    VY_f_Ptot       = zeros(nx  , ny  )
     # init
     Phi_ini         = ϕ_ini*ones(nx, ny)
     Phi_ini[sqrt.(X_rot.^2.0./rad_a.^2.0 .+ Y_rot.^2.0./rad_b.^2) .< 1.0] .= 2.5*ϕ_ini  # Porosity petubation
-    for smo=1:2 # Smooting of perturbation
+    for smo=1:nsm # Smooting of perturbation
         Phi_ini[2:end-1,:] .= Phi_ini[2:end-1,:] .+ 0.4.*(Phi_ini[3:end,:].-2.0.*Phi_ini[2:end-1,:].+Phi_ini[1:end-2,:])
         Phi_ini[:,2:end-1] .= Phi_ini[:,2:end-1] .+ 0.4.*(Phi_ini[:,3:end].-2.0.*Phi_ini[:,2:end-1].+Phi_ini[:,1:end-2])
     end
@@ -360,12 +362,11 @@ end
         end # end PT loop
         println("it = $(itp), time = $(round(timeP, sigdigits=3)) (time_tot = $(round(time_tot, sigdigits=3)))")
         # Visu
-        if itp % 2e1 == 1 || itp == 1
+        if itp % nviz == 1 || itp == 1
             it_viz += 1
             swell2h!(Vx_f, Array(q_f_X)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
             swell2h!(Vy_f, Array(q_f_Y)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
-            swell2h!(Vx_f_Ptot, Array(q_f_X_Ptot)./(Array(Rho_f[1:end-1,:])./Array(Phi[1:end-1,:]).+Array(Rho_f[2:end,:])./Array(Phi[2:end,:])).*2.0, 1)
-            swell2h!(VY_f_Ptot, Array(q_f_Y_Ptot)./(Array(Rho_f[:,1:end-1])./Array(Phi[:,1:end-1]).+Array(Rho_f[:,2:end])./Array(Phi[:,2:end])).*2.0, 2)
+            η_char         = 1e19
             Length_model_m = rad
             Time_model_sec = rad^2/(k_ηf*K_s)
             Length_phys_m  = 0.01
@@ -382,21 +383,38 @@ end
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
             p4  = heatmap(xc, yc, Array(∇V)'.*Time_model_sec./Time_phys_sec; title="C) ∇(v_s) [1/s]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p5  = heatmap(xc, yc, sqrt.(Vx_f.^2 .+ Vy_f.^2)'*Vel_phys_m_s; title="D) ||v_f|| [m/s]", opts1...)
+            p5  = heatmap(xc, yc, Array(X_s)'; title="D) X_s", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s; title="E) ||v_s|| [m/s]", opts1...)
+            p6  = heatmap(xc, yc, Array(Rho_s)'.*ρ_0; title="E) ρ_s [kg/m^3]", opts1...)
+            # p6  = heatmap(xc, yc, sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2)'*Vel_phys_m_s; title="E) ||v_s|| [m/s]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p7  = heatmap(xc, yc, sqrt.(Vx_f_Ptot.^2 .+ VY_f_Ptot.^2)'*Vel_phys_m_s; title="F) ||v_f||p [m/s]", opts1...)
+            p7  = heatmap(xc, yc, Array(Phi)'; title="F) ϕ", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p8  = heatmap(xv[2:end-1], yv[2:end-1], Array(τ_xy)'/Pini_Pappl/1e6; title="G) τxy [MPa]", opts1...)
+            p8  = heatmap(xc, yc, Array(Rho_f)'.*ρ_0; title="G) ρ_f [kg/m^3]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p9  = heatmap(xc, yc, Array(τII)'/Pini_Pappl/1e6; title="H) τII [MPa]", opts1...)
+            p9  = heatmap(xc, yc, Array(τII)'./Pini_Pappl./1e6; title="H) τII [MPa]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
-            p10 = heatmap(xc, yc, Array(Eta)'*1e20; title="I) ηs [Pas]", opts1...)
+            p10 = heatmap(xc, yc, log10.(Array(Eta)'.*η_char); title="I) log10(ηs) [Pas]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
             display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=300))
             savefig("output_$(nx)x$(ny)/PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
         end
+        if do_save && (itp % nsave == 0 || itp==1)
+            matwrite("output_$(nx)x$(ny)/pt_hmc_Atg_$(itp).mat", Dict("Ptot"=> Array(Ptot),
+                                                                      "Pf"=> Array(Pf),
+                                                                      "divV"=> Array(∇V),
+                                                                      "X_s"=> Array(X_s),
+                                                                      "Rho_s"=> Array(Rho_s),
+                                                                      "Phi"=> Array(Phi),
+                                                                      "Rho_f"=> Array(Rho_f),
+                                                                      "TauII"=> Array(τII),
+                                                                      "Eta"=> Array(Eta),
+                                                                      "Velf"=> sqrt.(Vx_f.^2 .+ Vy_f.^2),
+                                                                      "Vel"=> sqrt.(av_xa(Array(Vx)).^2 .+ av_ya(Array(Vy)).^2),
+                                                                      "Tauxy"=> Array(τ_xy),
+                                                                      "xc"=> Array(xc), "yc"=> Array(yc)); compress = true)
+        end
+
     end
     return
 end
