@@ -202,7 +202,7 @@ end
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dt_fact         = 1.0
     dtp             = τ_f_dif / 2.0 / dt_fact          # Time step physical
-    time_tot        = dt_fact * 5e3*dtp                # Total time of simulation
+    time_tot        = dt_fact * 2*5e3*dtp              # Total time of simulation
     itmax           = 5e4
     nout            = 1e3
     nsm             = 5                                # number of porosity smoothing steps - explicit diffusion
@@ -298,7 +298,7 @@ end
     Lam             =   λ_η*@ones(nx, ny)         # Bulk viscosity, alternative init:   # @all(Lam) = λ_η*@all(Eta)
     Vx_ps           =  ε_bg*Data.Array(Xc2vx)     # Pure shear, shortening in x
     Vy_ps           = -ε_bg*Data.Array(Yc2vy)     # Pure shear, extension in y
-    Vx_ss           =  ε_bg*Data.Array(Xc2vx)     # Simple shear, shearing in x
+    Vx_ss           =  ε_bg*Data.Array(Yc2vx)     # Simple shear, shearing in x
     Vy_ss           =   0.0*Data.Array(Yc2vy)     # Simple shear, zero velocity in y
     Vx              = 0.5.*(Vx_ps .+ Vx_ss)
     Vy              = 0.5.*(Vy_ps .+ Vy_ss)
