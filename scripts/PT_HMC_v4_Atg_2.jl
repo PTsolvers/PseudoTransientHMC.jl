@@ -88,11 +88,9 @@ end
     return
 end
 
-@parallel function compute_3!(q_f_X::Data.Array, q_f_Y::Data.Array, q_f_X_Ptot::Data.Array, q_f_Y_Ptot::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Pf::Data.Array, Ptot::Data.Array, dx::Data.Number, dy::Data.Number)
+@parallel function compute_3!(q_f_X::Data.Array, q_f_Y::Data.Array, para_cx::Data.Array, para_cy::Data.Array, Pf::Data.Array, dx::Data.Number, dy::Data.Number)
     @all(q_f_X)      = -@all(para_cx)*@d_xa(Pf)/dx        # Correct   Darcy flux with fluid pressure
     @all(q_f_Y)      = -@all(para_cy)*@d_ya(Pf)/dy        # Correct   Darcy flux with fluid pressure
-    @all(q_f_X_Ptot) = -@all(para_cx)*@d_xa(Ptot)/dx      # Incorrect Darcy flux with total pressure
-    @all(q_f_Y_Ptot) = -@all(para_cy)*@d_ya(Ptot)/dy      # Incorrect Darcy flux with total pressure
     return
 end
 
@@ -155,8 +153,8 @@ end
 @views function PT_HMC()
     runid   = "2inc"
     do_save = true
-    nsave   = 20
-    nviz    = 20
+    nsave   = 50
+    nviz    = 50
     # nrestart = 
     # read in mat file
     vars            = matread("LOOK_UP_atg.mat")
@@ -267,8 +265,6 @@ end
     para_cy         = @zeros(nx  , ny-1)
     q_f_X           = @zeros(nx-1, ny  )
     q_f_Y           = @zeros(nx  , ny-1)
-    q_f_X_Ptot      = @zeros(nx-1, ny  )
-    q_f_Y_Ptot      = @zeros(nx  , ny-1)
     ∇q_f            = @zeros(nx-2, ny-2)
     Res_Pf          = @zeros(nx-2, ny-2)
     Rho_X_ϕ         = @zeros(nx  , ny  )
@@ -330,7 +326,7 @@ end
             end
             # Fluid pressure evolution
             @parallel compute_2!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, k_ηf)
-            @parallel compute_3!(q_f_X, q_f_Y, q_f_X_Ptot, q_f_Y_Ptot, para_cx, para_cy, Pf, Ptot, dx, dy)
+            @parallel compute_3!(q_f_X, q_f_Y, para_cx, para_cy, Pf, dx, dy)
             @parallel compute_4!(∇q_f, Res_Pf, Rho_f, Rho_s_eq, X_s_eq, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, Pf, SlopeA, rho_f_maxA, ρ_0, p_reactA, rho_s_difA, rho_s_up, rho_s_minA, x_difA, x_minA, dtp, dx, dy)
             if (itp > 1) @parallel compute_5!(X_s, Rho_s, X_s_old, X_s_eq, Rho_s_old, Rho_s_eq, dtp, kin_time) end
             # Porosity evolution
