@@ -5,6 +5,7 @@ This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) r
 * [Script list](#script-list)
 * [Usage](#usage)
 * [Output](#output)
+* [New development](#new-development)
 * [To-Do](#to-do)
 * [References](#references)
 
@@ -60,6 +61,13 @@ The output of running the [`PT_HMC_v4_analytical.jl`](scripts/PT_HMC_v4_analytic
 
 ![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
 
+## New development
+
+**Dehydration vein formation in ductile serpentinite: control of kinetics and deformation.** hydro-mechanical-chemical (HMC) 19 model to study the impact of the kinetic rate of the dehydration reaction and of the far-field deformation rate on dehydration vein formation in serpentinite. We consider the reaction antigorite + brucite = forsterite + water. Volumetric deformation is viscoelastic and shear deformation is linear viscous with a shear viscosity that is an exponential function of porosity.
+
+The output of running the [`PT_HMC_v4_Atg_2.jl`](scripts/PT_HMC_v4_Atg_2.jl) script on an Nvidia Tesla V100 GPU with `nx=1023, ny=1023`:
+
+![](docs/PT_HMC_Atg_1023x1023.gif)
 
 
 ## To-Do
