@@ -69,6 +69,7 @@ The output of running the [`PT_HMC_v4_Atg_2.jl`](scripts/PT_HMC_v4_Atg_2.jl) scr
 
 ![](docs/PT_HMC_Atg_1023x1023.gif)
 
+The latest script including the addition of plastic yielding is [`PT_HMC_v4_Atg_3.jl`](scripts/PT_HMC_v4_Atg_3.jl).
 
 ## To-Do
 🚧 A non-exhaustive list of future next steps:
