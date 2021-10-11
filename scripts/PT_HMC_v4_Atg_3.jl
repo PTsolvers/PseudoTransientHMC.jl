@@ -137,22 +137,22 @@ end
     return 
 end
 
-@parallel function compute_plast_1!(τII::Data.Array, Lam::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, σ_y::Data.Number)
+@parallel function compute_plast_1!(τII::Data.Array, LamP::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, σ_y::Data.Number)
     @all(τII)  = sqrt( 0.5*(@all(τ_xx)*@all(τ_xx) + @all(τ_yy)*@all(τ_yy)) + @all(τ_xyn)*@all(τ_xyn) )
-    @all(Lam)  = max(0.0, (1.0 - σ_y/@all(τII)))
+    @all(LamP)  = max(0.0, (1.0 - σ_y/@all(τII)))
     return 
 end
 
-@parallel function compute_plast_2!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, Lam::Data.Array)
-    @all(τ_xx) = (1.0-@all(Lam))*@all(τ_xx)
-    @all(τ_yy) = (1.0-@all(Lam))*@all(τ_yy)
-    @all(τ_xy) = (1.0- @av(Lam))*@all(τ_xy)
+@parallel function compute_plast_2!(τ_xx::Data.Array, τ_yy::Data.Array, τ_xy::Data.Array, LamP::Data.Array)
+    @all(τ_xx) = (1.0-@all(LamP))*@all(τ_xx)
+    @all(τ_yy) = (1.0-@all(LamP))*@all(τ_yy)
+    @all(τ_xy) = (1.0- @av(LamP))*@all(τ_xy)
     return 
 end
 
-@parallel function compute_plast_3!(τII::Data.Array, Lam2::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, Lam::Data.Array)
-    @all(τII)  = sqrt( 0.5*(@all(τ_xx)*@all(τ_xx) + @all(τ_yy)*@all(τ_yy)) + @all(τ_xyn)*@all(τ_xyn) )
-    @all(Lam2) = @all(Lam2) + @all(Lam)
+@parallel function compute_plast_3!(τII::Data.Array, LamP2::Data.Array, τ_xx::Data.Array, τ_yy::Data.Array, τ_xyn::Data.Array, LamP::Data.Array)
+    @all(τII)   = sqrt( 0.5*(@all(τ_xx)*@all(τ_xx) + @all(τ_yy)*@all(τ_yy)) + @all(τ_xyn)*@all(τ_xyn) )
+    @all(LamP2) = @all(LamP2) + @all(LamP)
     return 
 end
 
@@ -292,8 +292,8 @@ end
     ε_yy            = @zeros(nx  , ny  )
     ε_xy            = @zeros(nx-1, ny-1)
     τII             = @zeros(nx  , ny  )
-    Lam             = @zeros(nx  , ny  )
-    Lam2            = @zeros(nx  , ny  )
+    LamP            = @zeros(nx  , ny  )
+    LamP2           = @zeros(nx  , ny  )
     # TMP arrays for swell2
     TmpX            = @zeros(nx+1, ny  )
     TmpY            = @zeros(nx  , ny+1)
@@ -372,11 +372,11 @@ end
             @parallel swell2_x!(TmpS1, τ_xy)
             @parallel swell2_y!(τ_xyn, TmpS1)
             # Plastic starts
-            @parallel compute_plast_1!(τII, Lam, τ_xx, τ_yy, τ_xyn, σ_y)
-            @parallel compute_plast_2!(τ_xx, τ_yy, τ_xy, Lam)
+            @parallel compute_plast_1!(τII, LamP, τ_xx, τ_yy, τ_xyn, σ_y)
+            @parallel compute_plast_2!(τ_xx, τ_yy, τ_xy, LamP)
             @parallel swell2_x!(TmpS1, τ_xy)
             @parallel swell2_y!(τ_xyn, TmpS1)
-            @parallel compute_plast_3!(τII, Lam2, τ_xx, τ_yy, τ_xyn, Lam)
+            @parallel compute_plast_3!(τII, LamP2, τ_xx, τ_yy, τ_xyn, LamP)
             # Plastic ends
             @parallel compute_9!(Res_Vx, Res_Vy, τ_xx, τ_yy, τ_xyn, Ptot, τ_xy, dx, dy)
             @parallel compute_10!(Vx, Vy, Res_Vx, Res_Vy, dt_Stokes)
