@@ -1,5 +1,5 @@
 const USE_GPU = false
-const GPU_ID  = 0
+const GPU_ID  = 7
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 @static if USE_GPU
@@ -127,11 +127,11 @@ end
     return
 end
 
-macro limit_min(A,min_val) esc(:( max($Eta[$ix,$iy],$min_val) )) end
+macro limit_min(A,min_val) esc(:( max($A[$ix,$iy],$min_val) )) end
 @parallel function compute_7!(Eta::Data.Array, Lam::Data.Array, ∇V::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array, Ptot::Data.Array, Vx::Data.Array, Vy::Data.Array, Phi::Data.Array, Ptot_old::Data.Array, Pf::Data.Array, Pf_old::Data.Array,
-                              dtPt::Data.Number, η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number, dtp::Data.Number, K_d::Data.Number, α::Data.Number, dx::Data.Number, dy::Data.Number)
+                              dtPt::Data.Number, η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number, dtp::Data.Number, K_d::Data.Number, η_min::Data.Number, α::Data.Number, dx::Data.Number, dy::Data.Number)
     @all(Eta)  = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
-    @all(Eta)  = @limit_min(Eta,eta_min)
+    @all(Eta)  = @limit_min(Eta,η_min)
     @all(Lam)  = λ_η*@all(Eta)
     @all(∇V)   = @d_xa(Vx)/dx + @d_ya(Vy)/dy
     @all(ε_xx) = @d_xa(Vx)/dx - 1.0/3.0*@all(∇V)
@@ -200,9 +200,8 @@ end
     do_viz  = true
     nsave   = 20
     nviz    = 20
-    ires    = 0
-    irestart= 20 # Step to restart from
-    # nrestart = 
+    do_restart = false
+    irestart   = 20 # Step to restart from if do_reatart
     # read in mat file
     vars            = matread( string(@__DIR__, "/LOOK_UP_atg.mat") )
     Rho_s_LU        = get(vars, "Rho_s"  ,1)
@@ -241,9 +240,9 @@ end
     τ_deform        = 0.5/7.0 * 1.0*τ_f_dif_ϕ
     ε_bg            = 1.0 / τ_deform
     Da              = ε_bg/(P_ini/η_m)   # Re-scaling of Da (LAMBDA_4)
-    # Numerical resolution
-    nx              = 200#372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    ny              = 200#372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
+    # Numerics
+    nx              = 372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    ny              = 372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     tol             = 1e-8#1e-5                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     dt_fact         = 1.0
@@ -252,6 +251,7 @@ end
     itmax           = 5e6
     nout            = 1e3
     nsm             = 5                                # number of porosity smoothing steps - explicit diffusion
+    η_min           = 1e-6
     kin_time        = 1e1*τ_f_dif_ϕ
     kin_time_final  = τ_kinetic
     Kin_time_vec    = [1e25*τ_f_dif_ϕ; range(kin_time, stop=kin_time_final, length=20); kin_time_final*ones(Int(round(time_tot/dtp)))]
@@ -384,8 +384,7 @@ end
     it_viz = 0; !ispath("output_$(runid)_$(nx)x$(ny)") && mkdir("output_$(runid)_$(nx)x$(ny)")
     # time loop
     while timeP < time_tot
-    #if 1==1    
-        if ires==1 
+        if do_restart
             restart_file = string( @__DIR__, "/pt_hmc_Atg_", @sprintf("%04d", irestart),".mat")
             vars_restart = matread( restart_file )
             Ptot       .= Data.Array( get(vars_restart, "Ptot"  ,1)      )
@@ -412,34 +411,25 @@ end
             timeP       = get(vars_restart, "timeP"  ,1)
             it          = get(vars_restart, "it"  ,1)
             it_tstep    = get(vars_restart, "it_tstep"  ,1)
-            ires = 0
+            do_restart = 0
         end
     	err_M = 2*tol; itp += 1
         timeP = timeP+dtp; push!(Time_vec, timeP)
         @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η)
         kin_time = Kin_time_vec[itp]
+
     	# PT loop
     	it_tstep=0; err_evo1=[]; err_evo2=[]; err_pl=[]
         dt_Stokes, dt_Pf = cfl*max_dxdy2, cfl*max_dxdy2
-        dt_Pt    = maximum(Eta)/(lx/dx)/cfl
-
-        # Res_Pf .= 0.0
-        # Res_Vy .= 0.0
-        # Res_Vx .= 0.0
-        # dPfdτ .= 0.0
-        # dVydτ .= 0.0
-        # dVxdτ .= 0.0
-
+        dt_Pt = maximum(Eta)/(lx/dx)/cfl
     	while err_M>tol && it_tstep<itmax
             it += 1; it_tstep += 1
             if it_tstep % 500 == 0 || it_tstep==1
-                dt_Stokes = cfl*max_dxdy2/maximum(Eta)*(2-ρ_i_V)/1.5                  # Pseudo time step for Stokes
-                dt_Pf     = cfl*max_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s)) # Pseudo time step for fluid pressure
-                dt_Pt    = maximum(Eta)/(lx/dx)/cfl
+                max_Eta   = maximum(Eta)
+                dt_Stokes = cfl*max_dxdy2/max_Eta*(2-ρ_i_V)/1.5            # Pseudo time step for Stokes
+                dt_Pf     = cfl*max_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s))  # Pseudo time step for fluid pressure
+                dt_Pt     = max_Eta/(lx/dx)/cfl
             end
-            # For damping
-            # Swap previous residuals
-            # @parallel SwapRes!( dVxdτ, dVydτ, dPfdτ, Res_Vx, Res_Vy, Res_Pf )
             # Fluid pressure evolution
             @parallel compute_2!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, k_ηf)
             @parallel compute_3!(q_f_X, q_f_Y, para_cx, para_cy, Pf, dx, dy)
@@ -458,7 +448,7 @@ end
             @parallel swell2_y!(TmpY, Rho_t)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel laplace!(∇V_ρ_t, TmpX, TmpY, dx, dy)
-            @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, dt_Pt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, α, dx, dy)
+            @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, dt_Pt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, η_min, α, dx, dy)
             @parallel compute_8!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
             @parallel swell2_x!(TmpS1, τ_xy)
             @parallel swell2_y!(τ_xyn, TmpS1)
