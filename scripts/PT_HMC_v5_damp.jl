@@ -1,4 +1,4 @@
-const USE_GPU = true
+const USE_GPU = false
 const GPU_ID  = 7
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -245,11 +245,15 @@ end
     nx              = 372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
     ny              = 372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     nt              = 1e4
+    # nx              = 100 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    # ny              = 100 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
+    # nt              = 1
     tol             = 1e-8                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     damping         = 1
     Re_Pf           = 40π
     Re_V            = 40π
+    r               = 1.5
     dt_fact         = 1.0
     dtp             = τ_f_dif / 2.0 / dt_fact          # Time step physical
     time_tot        = dt_fact * 2*5e3*dtp              # Total time of simulation
@@ -337,7 +341,7 @@ end
     dRhofPhi_dt     = @zeros(nx  , ny  ) 
     dRhoXPhi_dt     = @zeros(nx  , ny  ) 
     dPf_dt          = @zeros(nx  , ny  ) 
-    dPt_dt           = @zeros(nx  , ny  ) 
+    dPt_dt          = @zeros(nx  , ny  ) 
     dPhi_dt         = @zeros(nx  , ny  ) 
     dRhos_dt        = @zeros(nx  , ny  ) 
     # TMP arrays for swell2
@@ -428,7 +432,7 @@ end
                 max_Eta   = maximum(Eta)
                 dt_Stokes = cfl*max_dxdy2/max_Eta*(2-ρ_i_V)/1.5            # Pseudo time step for Stokes
                 dt_Pf     = cfl*max_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s))  # Pseudo time step for fluid pressure
-                dt_Pt     = max_Eta/(lx/dx)/cfl
+                dt_Pt     = r*Re_V*max_Eta*dx/lx
             end
             # Fluid pressure evolution
             @parallel compute_2!(Rho_t, para_cx, para_cy, Rho_f, Phi, Rho_s, k_ηf)
