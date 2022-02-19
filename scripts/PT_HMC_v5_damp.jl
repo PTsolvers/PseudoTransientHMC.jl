@@ -1,4 +1,4 @@
-const USE_GPU = false
+const USE_GPU = true
 const GPU_ID  = 7
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -13,8 +13,6 @@ using Plots, Printf, Statistics, LinearAlgebra, MAT
 import ParallelStencil: INDICES
 ix,iy   = INDICES[1], INDICES[2]
 ixi,iyi = :($ix+1), :($iy+1)
-
-macro limit_min(A,min_val) esc(:( max($A[$ix,$iy],$min_val) )) end
 
 "Average in x and y dimension"
 @views    av(A) = 0.25*(A[1:end-1,1:end-1].+A[2:end,1:end-1].+A[1:end-1,2:end].+A[2:end,2:end])
@@ -129,6 +127,7 @@ end
     return
 end
 
+macro limit_min(A,min_val) esc(:( max($A[$ix,$iy],$min_val) )) end
 @parallel function compute_7!(Eta::Data.Array, Lam::Data.Array, ∇V::Data.Array, ε_xx::Data.Array, ε_yy::Data.Array, ε_xy::Data.Array, Ptot::Data.Array, Vx::Data.Array, Vy::Data.Array, Phi::Data.Array, Ptot_old::Data.Array, Pf::Data.Array, Pf_old::Data.Array,
                               dtPt::Data.Number, η_m::Data.Number, ϕ_exp::Data.Number, ϕ_ini::Data.Number, λ_η::Data.Number, dtp::Data.Number, K_d::Data.Number, η_min::Data.Number, α::Data.Number, dx::Data.Number, dy::Data.Number)
     @all(Eta)  = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
@@ -245,9 +244,6 @@ end
     nx              = 372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
     ny              = 372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     nt              = 1e4
-    # nx              = 100 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    # ny              = 100 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
-    # nt              = 1
     tol             = 1e-8                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
     damping         = 1
@@ -382,16 +378,16 @@ end
     itp             = 0                           # Integer count for time loop
     save_count      = 0 
     Time_vec        = []
-    ρ_i_Pf          =  cfl*Re_Pf/nx
-    ρ_i_V           =  cfl*Re_V /nx
+    ρ_i_Pf          = cfl*Re_Pf/nx
+    ρ_i_V           = cfl*Re_V /nx
     dampPf          = damping.*(1.0 .- ρ_i_Pf)
     dampV           = damping.*(1.0 .- ρ_i_V )
-    it_viz = 0; !ispath("output_$(runid)_$(nx)x$(ny)") && mkdir("output_$(runid)_$(nx)x$(ny)")
+    it_viz = 0; dirname = "output_$(runid)_$(nx)x$(ny)"; !ispath(dirname) && mkdir(dirname)
     # time loop
-    while timeP < time_tot && itp<nt
+    while timeP < time_tot && itp < nt
         if do_restart
-            restart_file = string( @__DIR__, "/pt_hmc_Atg_", @sprintf("%04d", irestart),".mat")
-            vars_restart = matread( restart_file )
+            restart_file = joinpath(@__DIR__, dirname, "pt_hmc_Atg_") * @sprintf("%04d", irestart) * ".mat"
+            vars_restart = matread(restart_file)
             Ptot       .= Data.Array( get(vars_restart, "Ptot"  ,1)      )
             Pf         .= Data.Array( get(vars_restart, "Pf"  ,1)        )
             X_s        .= Data.Array( get(vars_restart, "X_s"  ,1)       )
@@ -525,8 +521,7 @@ end
         end
         if do_save && (itp % nsave == 0 || itp==1)
             @parallel postprocess!(dRhoT_dt, dRhosPhi_dt, dRhofPhi_dt, dRhoXPhi_dt, dPf_dt, dPt_dt, dPhi_dt, dRhos_dt, Rho_s, Rho_f, X_s, Phi, Rho_s_old, Rho_f_old, Rho_X_old, Phi_old, Rho_t, Rho_t_old, Pf, Pf_old, Ptot, Ptot_old, dtp)
-            # matwrite(string( @__DIR__, "/output_$(runid)_$(nx)x$(ny)/pt_hmc_Atg_$(itp).mat"),
-            matwrite(string( @__DIR__, "/pt_hmc_Atg_", @sprintf("%04d",itp), ".mat"),
+            matwrite(joinpath(@__DIR__, dirname, "pt_hmc_Atg_") * @sprintf("%04d", itp) * ".mat",
                       Dict("Ptot"=> Array(Ptot),
                            "Pf"=> Array(Pf),
                            "divV"=> Array(∇V),
