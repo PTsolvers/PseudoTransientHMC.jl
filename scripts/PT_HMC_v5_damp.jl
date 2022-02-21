@@ -412,7 +412,7 @@ end
             timeP       = get(vars_restart, "timeP"  ,1)
             it          = get(vars_restart, "it"  ,1)
             it_tstep    = get(vars_restart, "it_tstep"  ,1)
-            do_restart = 0
+            do_restart  = false
         end
     	err_M = 2*tol; itp += 1
         timeP = timeP+dtp; push!(Time_vec, timeP)
