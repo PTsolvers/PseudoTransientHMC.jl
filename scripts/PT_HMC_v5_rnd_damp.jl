@@ -362,22 +362,22 @@ end
     # Phi             = Phi_ini .+ Pert
     # Phi             = copy(Phi_ini)
     ################### Init random
-    Phi   = @ones(nx, ny)
-    ϕ_range = (0.01, 0.16)       # range
-    sf    = 1.0                  # standard deviation
-    cl    = (lx/10.0, ly/15.0)   # correlation length
-    nh    = 10000                 # inner parameter, number of harmonics
+    Phi    = @ones(nx, ny)
+    ϕ_range = (0.01, 0.16)        # range
+    sf     = 1.0                  # standard deviation
+    cl     = (lx/10.0, ly/15.0)   # correlation length
+    nh     = 10000                # inner parameter, number of harmonics
     grf2D_expon!(Phi, sf, cl, nh, size(Phi,1), size(Phi,2), dx, dy; do_reset=true)
-    min_ϕ = minimum(Phi)
-    Phi  .= Phi .- min_ϕ
-    max_ϕ = maximum(Phi)
-    Phi  .= Phi ./ max_ϕ .* (ϕ_range[2] - ϕ_range[1]) .+ ϕ_range[1]
+    min_ϕ  = minimum(Phi)
+    Phi   .= Phi .- min_ϕ
+    max_ϕ  = maximum(Phi)
+    Phi   .= Phi ./ max_ϕ .* (ϕ_range[2] - ϕ_range[1]) .+ ϕ_range[1]
     xb, yb = lx/6.0, ly/6.0
     xind, yind = Int(ceil(xb/dx)), Int(ceil(yb/dy))
-    Phi[1:xind,:]         .= Phi[1:xind,:]         .* repeat(((1:xind) .- 1)./xind,1,ny)
-    Phi[end-xind+1:end,:] .= Phi[end-xind+1:end,:] .* repeat(1 .- (1:xind)./xind,  1,ny)
+    Phi[1:xind,:]         .= Phi[1:xind,:]         .* repeat(((1:xind) .- 1)./xind ,1,ny)
+    Phi[end-xind+1:end,:] .= Phi[end-xind+1:end,:] .* repeat(1 .- (1:xind)./xind   ,1,ny)
     Phi[:,1:yind]         .= Phi[:,1:yind]         .* repeat(((1:yind)' .- 1)./yind,nx,1)
-    Phi[:,end-yind+1:end] .= Phi[:,end-yind+1:end] .* repeat(1 .- (1:yind)'./yind,  nx,1)
+    Phi[:,end-yind+1:end] .= Phi[:,end-yind+1:end] .* repeat(1 .- (1:yind)'./yind  ,nx,1)
     display(heatmap(Phi')); error("stop")
     ################### init
     Eta             =   η_m*@ones(nx, ny)         # Shear viscosity, alternative init:   # @all(Eta) = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
