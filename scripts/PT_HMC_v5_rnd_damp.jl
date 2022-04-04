@@ -243,8 +243,8 @@ end
     ε_bg            = 1.0 / τ_deform
     Da              = ε_bg/(P_ini/η_m)   # Re-scaling of Da (LAMBDA_4)
     # Numerics
-    nx              = 63#372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    ny              = 63#372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
+    nx              = 127#372 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
+    ny              = 127#372 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     nt              = 1e4
     tol             = 1e-8                             # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                           # CFL parameter for PT-Stokes solution
@@ -362,22 +362,22 @@ end
     # Phi             = Phi_ini .+ Pert
     # Phi             = copy(Phi_ini)
     ################### Init random
-    Phi  = @ones(nx, ny)
-    ϕ_range = (0.01, 0.16)      # range
-    sf   = 1.0                  # standard deviation
-    cl   = (lx/10.0, ly/15.0)    # correlation length
-    nh   = 10000                # inner parameter, number of harmonics
+    Phi   = @ones(nx, ny)
+    ϕ_range = (0.01, 0.16)       # range
+    sf    = 1.0                  # standard deviation
+    cl    = (lx/10.0, ly/15.0)   # correlation length
+    nh    = 10000                 # inner parameter, number of harmonics
     grf2D_expon!(Phi, sf, cl, nh, size(Phi,1), size(Phi,2), dx, dy; do_reset=true)
     min_ϕ = minimum(Phi)
     Phi  .= Phi .- min_ϕ
     max_ϕ = maximum(Phi)
     Phi  .= Phi ./ max_ϕ .* (ϕ_range[2] - ϕ_range[1]) .+ ϕ_range[1]
-    # for ism = 1:nsm
-    #     @parallel smooth!(Cc2, Cc, 1.0/(dt_sm*4.1/dx^2*kd) )
-    #     @parallel (1:size(Cc2,2), 1:size(Cc2,3)) bc_x!(Cc2)
-    #     @parallel (1:size(Cc2,1), 1:size(Cc2,3)) bc_y!(Cc2)
-    #     Cc, Cc2 = Cc2, Cc
-    # end
+    xb, yb = lx/6.0, ly/6.0
+    xind, yind = Int(ceil(xb/dx)), Int(ceil(yb/dy))
+    Phi[1:xind,:]         .= Phi[1:xind,:]         .* repeat(((1:xind) .- 1)./xind,1,ny)
+    Phi[end-xind+1:end,:] .= Phi[end-xind+1:end,:] .* repeat(1 .- (1:xind)./xind,  1,ny)
+    Phi[:,1:yind]         .= Phi[:,1:yind]         .* repeat(((1:yind)' .- 1)./yind,nx,1)
+    Phi[:,end-yind+1:end] .= Phi[:,end-yind+1:end] .* repeat(1 .- (1:yind)'./yind,  nx,1)
     display(heatmap(Phi')); error("stop")
     ################### init
     Eta             =   η_m*@ones(nx, ny)         # Shear viscosity, alternative init:   # @all(Eta) = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
