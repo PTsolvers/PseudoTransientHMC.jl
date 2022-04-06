@@ -1,4 +1,4 @@
-const USE_GPU = false
+const USE_GPU = true
 const GPU_ID  = 7
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -73,6 +73,18 @@ end
 @parallel_indices (ix) function bc_y!(A::Data.Array)
     A[ix, 1  ] = A[ix, 2    ]
     A[ix, end] = A[ix, end-1]
+    return
+end
+
+@parallel_indices (ix,iy) function smooth_border_x!(Phi::Data.Array, xind)
+    if (ix<=xind                 && iy<=size(Phi,2)) Phi[ix,iy] = Phi[ix,iy] * ((ix - 1)/xind) end
+    if (ix>=(size(Phi,1)-xind+1) && iy<=size(Phi,2)) Phi[ix,iy] = Phi[ix,iy] * ((size(Phi,1) - ix)/xind) end
+    return
+end
+
+@parallel_indices (ix,iy) function smooth_border_y!(Phi::Data.Array, yind)
+    if (ix<=size(Phi,1) && iy<=yind                ) Phi[ix,iy] = Phi[ix,iy] * ((iy - 1)/yind) end
+    if (ix<=size(Phi,1) && iy>=(size(Phi,2)-yind+1)) Phi[ix,iy] = Phi[ix,iy] * ((size(Phi,2) - iy)/yind) end
     return
 end
 ##################################################
@@ -184,12 +196,12 @@ end
 end
 
 @parallel function postprocess!(dRhoT_dt::Data.Array, dRhosPhi_dt::Data.Array, dRhofPhi_dt::Data.Array, dRhoXPhi_dt::Data.Array, dPf_dt::Data.Array, dPt_dt::Data.Array, dPhi_dt::Data.Array, dRhos_dt::Data.Array, Rho_s::Data.Array, Rho_f::Data.Array, X_s::Data.Array, Phi::Data.Array, Rho_s_old::Data.Array, Rho_f_old::Data.Array, Rho_X_old::Data.Array, Phi_old::Data.Array, Rho_t::Data.Array, Rho_t_old::Data.Array, Pf::Data.Array, Pf_old::Data.Array, Ptot::Data.Array, Ptot_old::Data.Array, dtp::Data.Number)
-    @all(dRhoT_dt)      = (@all(Rho_t)                         - @all(Rho_t_old))                     /dtp#
+    @all(dRhoT_dt)      = (@all(Rho_t)                         - @all(Rho_t_old))                     /dtp
     @all(dRhosPhi_dt)   = (@all(Rho_s)*(1.0-@all(Phi))         - @all(Rho_s_old)*(1.0-@all(Phi_old))) /dtp
     @all(dRhofPhi_dt)   = (@all(Rho_f)*@all(Phi)               - @all(Rho_f_old)*@all(Phi_old))       /dtp
     @all(dRhoXPhi_dt)   = (@all(Rho_s)*@all(X_s)*(1-@all(Phi)) - @all(Rho_X_old)*(1-@all(Phi_old)))   /dtp
     @all(dPf_dt)        = (@all(Pf)                            - @all(Pf_old))                        /dtp
-    @all(dPt_dt)         = (@all(Ptot)                          - @all(Ptot_old))                      /dtp
+    @all(dPt_dt)         = (@all(Ptot)                          - @all(Ptot_old))                     /dtp
     @all(dPhi_dt)       = (@all(Phi)                           - @all(Phi_old))                       /dtp
     @all(dRhos_dt)      = (@all(Rho_s)                         - @all(Rho_s_old))                     /dtp
     return
@@ -362,23 +374,21 @@ end
     # Phi             = Phi_ini .+ Pert
     # Phi             = copy(Phi_ini)
     ################### Init random
+    xb, yb = lx/4.0, ly/4.0 # width of the boundary region
     Phi    = @ones(nx, ny)
     ϕ_range = (0.01, 0.16)        # range
     sf     = 1.0                  # standard deviation
     cl     = (lx/10.0, ly/15.0)   # correlation length
     nh     = 10000                # inner parameter, number of harmonics
     grf2D_expon!(Phi, sf, cl, nh, size(Phi,1), size(Phi,2), dx, dy; do_reset=true)
+    xind, yind = Int(ceil(xb/dx)), Int(ceil(yb/dy))
+    @parallel smooth_border_x!(Phi, xind)
+    @parallel smooth_border_y!(Phi, yind)
     min_ϕ  = minimum(Phi)
     Phi   .= Phi .- min_ϕ
     max_ϕ  = maximum(Phi)
     Phi   .= Phi ./ max_ϕ .* (ϕ_range[2] - ϕ_range[1]) .+ ϕ_range[1]
-    xb, yb = lx/6.0, ly/6.0
-    xind, yind = Int(ceil(xb/dx)), Int(ceil(yb/dy))
-    Phi[1:xind,:]         .= Phi[1:xind,:]         .* repeat(((1:xind) .- 1)./xind ,1,ny)
-    Phi[end-xind+1:end,:] .= Phi[end-xind+1:end,:] .* repeat(1 .- (1:xind)./xind   ,1,ny)
-    Phi[:,1:yind]         .= Phi[:,1:yind]         .* repeat(((1:yind)' .- 1)./yind,nx,1)
-    Phi[:,end-yind+1:end] .= Phi[:,end-yind+1:end] .* repeat(1 .- (1:yind)'./yind  ,nx,1)
-    display(heatmap(Phi')); error("stop")
+    # display(heatmap(Array(Phi)')); error("stop")
     ################### init
     Eta             =   η_m*@ones(nx, ny)         # Shear viscosity, alternative init:   # @all(Eta) = η_m*exp(-ϕ_exp*(@all(Phi)-ϕ_ini))
     Lam             =   λ_η*@ones(nx, ny)         # Bulk viscosity, alternative init:   # @all(Lam) = λ_η*@all(Eta)
