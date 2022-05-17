@@ -1,4 +1,7 @@
 # Pseudo-transient Hydro-Mechanical-Chemical (HMC)
+
+[![Build Status](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
+
 This repository contains Pseudo-Transient (PT) Hydro-Mechanical-Chemical (HMC) routines for simulation of brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351). The core of the Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The routines rely on the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package for GPU and multi-threaded CPU execution.
 
 ## Content
