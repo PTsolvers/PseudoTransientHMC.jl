@@ -3,8 +3,8 @@ const USE_GPU    = haskey(ENV, "USE_GPU"   ) ? parse(Bool, ENV["USE_GPU"]   ) : 
 const GPU_ID     = haskey(ENV, "GPU_ID"    ) ? parse(Int,  ENV["GPU_ID"]    ) : 0
 const do_viz     = haskey(ENV, "DO_VIZ"    ) ? parse(Bool, ENV["DO_VIZ"]    ) : false
 const do_save    = haskey(ENV, "DO_SAVE"   ) ? parse(Bool, ENV["DO_SAVE"]   ) : false
-const nx         = haskey(ENV, "NX"        ) ? parse(Int , ENV["NX"]        ) : 255#959
-const ny         = haskey(ENV, "NY"        ) ? parse(Int , ENV["NY"]        ) : 255#959
+const nx         = haskey(ENV, "NX"        ) ? parse(Int , ENV["NX"]        ) : 159 #959
+const ny         = haskey(ENV, "NY"        ) ? parse(Int , ENV["NY"]        ) : 159 #959
 ###
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -247,8 +247,8 @@ end
     tol             = 1e-8                             # Tolerance for pseudo-transient iterations
     cfl             = 1.0/16.1                         # CFL parameter for PT-Stokes solution
     damping         = 1
-    Re_Pf           = 100π
-    Re_V            = 100π
+    Re_Pf           = 60π
+    Re_V            = 60π
     r               = 1.5
     dt_fact         = 1.0
     dtp             = τ_f_dif / 2.0 / dt_fact          # Time step physical
