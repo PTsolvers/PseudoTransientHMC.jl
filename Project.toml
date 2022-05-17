@@ -1,7 +1,18 @@
+name = "PseudoTransientHMC"
+uuid = "cb9d675c-d620-11ec-3bb4-3f7a5ee3044a"
+authors = ["Stefan Schmalholz, Ludovic Raess and contributors"]
+version = "0.1.0"
+
 [deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 ParallelRandomFields = "5519cec6-2252-4828-b89b-d1114f8bfbc2"
 ParallelStencil = "94395366-693c-11ea-3b26-d9b7aac5d958"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+ReferenceTests = "324d217c-45ce-50fc-942e-d289b448e8cf"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
