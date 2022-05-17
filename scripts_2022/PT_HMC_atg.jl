@@ -1,10 +1,10 @@
-const use_return = haskey(ENV, "USE_RETURN") ? parse(Bool, ENV["USE_RETURN"]) : false
-const USE_GPU    = haskey(ENV, "USE_GPU"   ) ? parse(Bool, ENV["USE_GPU"]   ) : false
-const GPU_ID     = haskey(ENV, "GPU_ID"    ) ? parse(Int,  ENV["GPU_ID"]    ) : 0
-const do_viz     = haskey(ENV, "DO_VIZ"    ) ? parse(Bool, ENV["DO_VIZ"]    ) : false
-const do_save    = haskey(ENV, "DO_SAVE"   ) ? parse(Bool, ENV["DO_SAVE"]   ) : false
-const nx         = haskey(ENV, "NX"        ) ? parse(Int , ENV["NX"]        ) : 159 #959
-const ny         = haskey(ENV, "NY"        ) ? parse(Int , ENV["NY"]        ) : 159 #959
+const run_test = haskey(ENV, "RUN_TEST") ? parse(Bool, ENV["RUN_TEST"]) : false
+const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : false
+const GPU_ID   = haskey(ENV, "GPU_ID"  ) ? parse(Int,  ENV["GPU_ID"]  ) : 0
+const do_viz   = haskey(ENV, "DO_VIZ"  ) ? parse(Bool, ENV["DO_VIZ"]  ) : false
+const do_save  = haskey(ENV, "DO_SAVE" ) ? parse(Bool, ENV["DO_SAVE"] ) : false
+const nx       = haskey(ENV, "NX"      ) ? parse(Int , ENV["NX"]      ) : 159 #959
+const ny       = haskey(ENV, "NY"      ) ? parse(Int , ENV["NY"]      ) : 159 #959
 ###
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -577,12 +577,12 @@ end
                            "it_tstep"=> it_tstep,
                            "xc"=> Array(xc), "yc"=> Array(yc)); compress = true)
         end
-        if (use_return && itp==1) break; end
+        if (run_test && itp==1) break; end
     end
     return xc, yc, Pf, Phi
 end
 
-if use_return
+if run_test
     xc, yc, Pf, Phi = PT_HMC_();
 else
     PT_HMC = begin PT_HMC_(); return; end
