@@ -63,11 +63,11 @@ Additional startup flag infos can be found [here](https://docs.julialang.org/en/
 ## Output
 The output of running the [`PT_HMC_bru_analytical.jl`](scripts_2020/PT_HMC_bru_analytical.jl) script on an Nvidia TitanXp GPU with `nx=1023, ny=1023`:
 
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_1023x1023.png)
+![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_bru_1023x1023.png)
 
-The output of running the [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl) script on an Nvidia Tesla V100 GPU with `nx=1023, ny=1023`:
+The output of running the [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl) script on an Nvidia Tesla V100 GPU with `nx=1023, ny=1023` (to be updated):
 
-![](docs/PT_HMC_Atg_1023x1023.gif)
+![PT-HMC code predicting olivine vein formation](docs/PT_HMC_atg_1023x1023.png)
 
 
 ## References
