@@ -1,9 +1,9 @@
-const USE_GPU    = haskey(ENV, "USE_GPU"   ) ? parse(Bool, ENV["USE_GPU"]   ) : true
-const GPU_ID     = haskey(ENV, "GPU_ID"    ) ? parse(Int,  ENV["GPU_ID"]    ) : 0
-const do_viz     = haskey(ENV, "DO_VIZ"    ) ? parse(Bool, ENV["DO_VIZ"]    ) : false
-const do_save    = haskey(ENV, "DO_SAVE"   ) ? parse(Bool, ENV["DO_SAVE"]   ) : false
-const nx         = haskey(ENV, "NX"        ) ? parse(Int , ENV["NX"]        ) : 800
-const ny         = haskey(ENV, "NY"        ) ? parse(Int , ENV["NY"]        ) : 800
+const USE_GPU = haskey(ENV, "USE_GPU") ? parse(Bool, ENV["USE_GPU"]) : true
+const GPU_ID  = haskey(ENV, "GPU_ID" ) ? parse(Int,  ENV["GPU_ID"] ) : 0
+const do_viz  = haskey(ENV, "DO_VIZ" ) ? parse(Bool, ENV["DO_VIZ"] ) : true
+const do_save = haskey(ENV, "DO_SAVE") ? parse(Bool, ENV["DO_SAVE"]) : false
+const nx      = haskey(ENV, "NX"     ) ? parse(Int , ENV["NX"]     ) : 383
+const ny      = haskey(ENV, "NY"     ) ? parse(Int , ENV["NY"]     ) : 383
 ###
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -211,7 +211,7 @@ end
     return
 end
 ##################################################
-@views function PT_HMC_()
+@views function PT_HMC()
     runid      = "plast1_rand"
     nsave      = 25
     nviz       = 20
@@ -260,8 +260,8 @@ end
     tol             = 1e-7                             # Tolerance for pseudo-transient iterations
     cfl             = 1.0/16.1                         # CFL parameter for PT-Stokes solution
     damping         = 1
-    Re_Pf           = 140π
-    Re_V            = 140π
+    Re_Pf           = 100π
+    Re_V            = 100π
     r               = 1.5
     dt_fact         = 1.0
     dtp             = τ_f_dif / 2.0 / dt_fact          # Time step physical
@@ -424,7 +424,7 @@ end
     ρ_i_V           = cfl*Re_V /nx
     dampPf          = damping.*(1.0 .- ρ_i_Pf)
     dampV           = damping.*(1.0 .- ρ_i_V )
-    if do_save
+    if do_save || do_viz
         !ispath(joinpath(@__DIR__,"../output")) && mkdir(joinpath(@__DIR__,"../output"))
         dirname = joinpath(@__DIR__, "../output/output_$(runid)_$(nx)x$(ny)"); !ispath(dirname) && mkdir(dirname)
     end
@@ -563,7 +563,7 @@ end
             p10 = heatmap(xc, yc, log10.(Array(Eta)'.*η_char); title="I) log10(ηs) [Pas]", opts1...)
             # plot!(XY_elli[1], XY_elli[2]; opts2...)
             display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=300))
-            #savefig("output_$(runid)_$(nx)x$(ny)/PT_HMC_Atg_$(nx)x$(ny)_$(it_viz).png")
+            savefig(joinpath(@__DIR__, dirname, "fig_pt_hmc_Atg_$(it_viz).png"))
         end
         if do_save && (itp % nsave == 0 || itp==1)
             @parallel postprocess!(dRhoT_dt, dRhosPhi_dt, dRhofPhi_dt, dRhoXPhi_dt, dPf_dt, dPt_dt, dPhi_dt, dRhos_dt, Rho_s, Rho_f, X_s, Phi, Rho_s_old, Rho_f_old, Rho_X_old, Phi_old, Rho_t, Rho_t_old, Pf, Pf_old, Ptot, Ptot_old, dtp)

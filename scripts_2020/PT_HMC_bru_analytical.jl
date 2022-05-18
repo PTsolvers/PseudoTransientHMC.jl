@@ -1,9 +1,9 @@
 const run_test = haskey(ENV, "RUN_TEST") ? parse(Bool, ENV["RUN_TEST"]) : false
-const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : false
+const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : true
 const GPU_ID   = haskey(ENV, "GPU_ID"  ) ? parse(Int,  ENV["GPU_ID"]  ) : 0
 const do_viz   = haskey(ENV, "DO_VIZ"  ) ? parse(Bool, ENV["DO_VIZ"]  ) : true
-const nx       = haskey(ENV, "NX"      ) ? parse(Int , ENV["NX"]      ) : 127
-const ny       = haskey(ENV, "NY"      ) ? parse(Int , ENV["NY"]      ) : 127
+const nx       = haskey(ENV, "NX"      ) ? parse(Int , ENV["NX"]      ) : 383
+const ny       = haskey(ENV, "NY"      ) ? parse(Int , ENV["NY"]      ) : 383
 ###
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -172,6 +172,7 @@ end
 end
 ##################################################
 @views function PT_HMC_()
+    runid           = "bru_analyt"
     # read in mat file
     vars            = matread(string(@__DIR__, "/LOOK_UP_HMC_Pub.mat"))
     Rho_s_LU        = get(vars, "Rho_s_07",1)
@@ -331,6 +332,10 @@ end
     itp             = 0                           # Integer count for time loop
     save_count      = 0 
     Time_vec        = []
+    if do_viz
+        !ispath(joinpath(@__DIR__,"../output")) && mkdir(joinpath(@__DIR__,"../output"))
+        dirname = joinpath(@__DIR__, "../output/output_$(runid)_$(nx)x$(ny)"); !ispath(dirname) && mkdir(dirname)
+    end
     # time loop
     while timeP < time_tot
     	err_M=2*tol; itp+=1.0
@@ -425,7 +430,7 @@ end
         p10 = heatmap(xc, yc, Array(Eta)'*1e20, aspect_ratio=1, xlims=(xc[1], xc[end]), ylims=(yc[1], yc[end]), c=:viridis, title="I) ηs [Pas]", titlefontsize=TFS)
                 plot!(XY_elli[1], XY_elli[2], linewidth=lw, linecolor="white", legend=false, framestyle=:box)
         display(plot(p2, p3, p4, p5, p6, p7, p8, p9, p10, background_color=:transparent, foreground_color=:gray, dpi=150))
-        # savefig("PT_HMC_$(nx)x$(ny).png")
+        savefig(joinpath(@__DIR__, dirname, "fig_pt_hmc_bru.png"))
     end
     return xc, yc, Pf, Phi
 end
