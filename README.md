@@ -1,6 +1,7 @@
 # Pseudo-transient Hydro-Mechanical-Chemical
 
 [![Build Status](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![DOI](https://zenodo.org/badge/299357364.svg)](https://zenodo.org/badge/latestdoi/299357364)
 
 This repository contains Pseudo-Transient (PT) routines resolving chemical reactions coupled to fluid flow in viscously defroming solid pourous matrix, so-called Hydro-Mechanical-Chemical (HMC) coupling. Example of such multi-physical processes relate to, e.g, the brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) and could explain the formation of olivine veins by dehydration of ductile serpentinite [(Schmalholz et al., 2022 - submitted)]().
 
