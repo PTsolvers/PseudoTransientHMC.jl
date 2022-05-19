@@ -372,7 +372,7 @@ end
     Pf              = Data.Array(Pf)
     Ptot           .= Pf                          # Initial total pressure
     # Parameters for time loop and pseudo-transient iterations
-    max_dxdy2       = max(dx,dy).^2
+    min_dxdy2       = min(dx,dy).^2
     timeP           = 0.0                         # Initial time
     it              = 0                           # Integer count for iteration loop
     itp             = 0                           # Integer count for time loop
@@ -424,14 +424,14 @@ end
         kin_time = Kin_time_vec[itp]
     	# PT loop
     	it_tstep=0; err_evo1=[]; err_evo2=[]; err_pl=[]
-        dt_Stokes, dt_Pf = cfl*max_dxdy2, cfl*max_dxdy2
+        dt_Stokes, dt_Pf = cfl*min_dxdy2, cfl*min_dxdy2
         dt_Pt = maximum(Eta)/(lx/dx)
     	while err_M>tol && it_tstep<itmax
             it += 1; it_tstep += 1
             if it_tstep % 500 == 0 || it_tstep==1
                 max_Eta   = maximum(Eta)
-                dt_Stokes = cfl*max_dxdy2/max_Eta*(2-ρ_i_V)/1.5            # Pseudo time step for Stokes
-                dt_Pf     = cfl*max_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s))  # Pseudo time step for fluid pressure
+                dt_Stokes = cfl*min_dxdy2/max_Eta*(2-ρ_i_V)/1.5            # Pseudo time step for Stokes
+                dt_Pf     = cfl*min_dxdy2/maximum(k_ηf.*Phi.^3*(4.0*K_s))  # Pseudo time step for fluid pressure
                 dt_Pt     = r*Re_V*max_Eta*dx/lx
             end
             # Fluid pressure evolution
