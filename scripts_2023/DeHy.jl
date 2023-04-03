@@ -460,7 +460,6 @@ end
     # Parameters for time loop and pseudo-transient iterations
     max_dxdy2  = max(dx,dy).^2
     timeP      = 0.0                         # Initial time
-    it         = 0                           # Integer count for iteration loop
     itp        = 0                           # Integer count for time loop
     Time_vec   = []
     ρ_i_Pf     = cfl*Re_Pf/nx
@@ -495,7 +494,6 @@ end
             Time_vec    = get(vars_restart, "Time_vec", 1)
             itp         = get(vars_restart, "itp", 1)
             timeP       = get(vars_restart, "timeP", 1)
-            it          = get(vars_restart, "it", 1)
             it_tstep    = get(vars_restart, "it_tstep", 1)
             do_restart  = false
         end
@@ -518,7 +516,7 @@ end
         dt_Stokes, dt_Pf = cfl*max_dxdy2, cfl*max_dxdy2
         dt_Pt = maximum(Eta)/(lx/dx)
         while err_M>tol && it_tstep<itmax
-            it += 1; it_tstep += 1
+            it_tstep += 1
             if it_tstep % 500 == 0 || it_tstep==1
                 max_Eta   = maximum(Eta)
                 dt_Stokes = cfl*max_dxdy2/max_Eta*(2-ρ_i_V)/1.5                   # Pseudo time step for Stokes
@@ -567,7 +565,7 @@ end
                 err_pl   = push!(err_pl, maximum(τII)/σ_y - 1.0)
                 @printf("iter = %d, error = %1.3e \n", it_tstep, err_M)
             end
-            (run_test && itmax>=1e3) && break
+            (run_test && it_tstep>=1e3) && break
         end # end PT loop
         println("it = $(itp), time = $(round(timeP, sigdigits=3)) (time_tot = $(round(time_tot, sigdigits=3)))")
         if do_save && (itp % nsave == 0 || itp==1)
@@ -621,7 +619,6 @@ end
                            "Pini_Pappl"=> Pini_Pappl,
                            "itp"=> itp,
                            "timeP"=> timeP,
-                           "it"=> it,
                            "it_tstep"=> it_tstep,
                            "xc"=> Array(xc), "yc"=> Array(yc)); compress = true)
         end
