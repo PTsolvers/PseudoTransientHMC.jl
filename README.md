@@ -18,7 +18,9 @@ The scripts are located in two distinct folders. The folders contain the Julia (
 
 - The [scripts_2020](scripts_2020) folder relates to the [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) study. The "analytical" [`PT_HMC_bru_analytical.jl`](scripts_2020/PT_HMC_bru_analytical.jl) script includes a paramtetrisation of the solid and fluid densities and composition as function of fluid pressure to circumvent costly interpolation operations.
 
-- The [scripts_2022](scripts_2022) folder contains the routines for the [(Schmalholz et al., 2022)]() study. The main scipt is [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl). _The "rand" version implements resolving HMC coupling given a random initial porosity distribution._
+- The [scripts_2022](scripts_2022) folder contains the routines for the [(Schmalholz et al., 2022)](https://doi.org/10.1002/essoar.10512291.2) "preprint" study. The main scipt is [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl). _The "rand" version implements resolving HMC coupling given a random initial porosity distribution._
+
+- The [scripts_2023](scripts_2023) folder contains the routines for the [(Schmalholz et al., _submitted_)]() study. The main scipt is [`DeHy.jl`](scripts_2023/DeHy.jl).
 
 ## Usage
 If not stated otherwise, all the routines are written in Julia and can be executed from the [Julia REPL], or from the terminal for improved performance. Output is produced using the [Julia Plots package].
