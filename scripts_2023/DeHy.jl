@@ -1,9 +1,10 @@
 # Hydro-mechanical-chemical 2D model for olivine vein formation by dehydration of serpentinite
 # Stefan Schmalholz, 22.03.2023
-# Resolution is 500 x 500 for fast calculation (lines 290 & 291). Use 900 x 900 to reproduce results in manuscript.
-# Time step is limited to 4000 steps (line 292)
-const USE_GPU = false
-const GPU_ID  = 0
+# Resolution `nx`, `ny` is 500 x 500 for fast calculation. Use 900 x 900 to reproduce results in manuscript.
+# Time step is limited to 4000 steps `it`
+const run_test = haskey(ENV, "RUN_TEST") ? parse(Bool, ENV["RUN_TEST"]) : false
+const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : true
+const GPU_ID   = haskey(ENV, "GPU_ID"  ) ? parse(Int,  ENV["GPU_ID"]  ) : 0
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 @static if USE_GPU
@@ -236,9 +237,8 @@ end
 end
 
 ##################################################
-@views function PT_HMC()
+@views function PT_HMC(; nx=500, ny=500, do_save=false, run_test=false)
     runid           = "dehy"
-    do_save         = true
     nsave           = 100
     do_Phi_rnd      = false
     do_Pf_pert      = false
@@ -287,8 +287,6 @@ end
     τ_kinetic       = Om5 * τ_f_dif_ϕ   
     # Numerics
     dtp             = 4e-6 * τ_f_dif_ϕ          # Time step physical
-    nx              = 501 - 1 # -1 due to overlength of array nx+1, multiple of 16 for optimal GPU perf
-    ny              = 501 - 1 # -1 due to overlength of array ny+1, multiple of 16 for optimal GPU perf
     nt              = 4e3+1
     tol             = 1e-6                              # Tolerance for pseudo-transient iterations
     cfl             = 1/16.1                            # CFL parameter for PT-Stokes solution
@@ -469,7 +467,7 @@ end
     ρ_i_V      = cfl*Re_V /nx
     dampPf     = damping.*(1.0 .- ρ_i_Pf)
     dampV      = damping.*(1.0 .- ρ_i_V )
-    dirname = "../output_$(runid)_$(nx)x$(ny)"; !ispath(dirname) && mkdir(dirname)
+    !run_test && (dirname = "../output_$(runid)_$(nx)x$(ny)"; !ispath(dirname) && mkdir(dirname))
     # time loop
     while timeP < time_tot && itp < nt
         if do_restart
@@ -569,6 +567,7 @@ end
                 err_pl   = push!(err_pl, maximum(τII)/σ_y - 1.0)
                 @printf("iter = %d, error = %1.3e \n", it_tstep, err_M)
             end
+            (run_test && itmax>=1e3) && break
         end # end PT loop
         println("it = $(itp), time = $(round(timeP, sigdigits=3)) (time_tot = $(round(time_tot, sigdigits=3)))")
         if do_save && (itp % nsave == 0 || itp==1)
@@ -626,8 +625,13 @@ end
                            "it_tstep"=> it_tstep,
                            "xc"=> Array(xc), "yc"=> Array(yc)); compress = true)
         end
+        (run_test && itp==1) && break
     end
-    return
+    return (run_test ? (xc, yc, Pf, Phi) : nothing)
 end
 
-@time PT_HMC()
+@static if !run_test
+    PT_HMC(; nx=500, ny=500, do_save=true, run_test)
+else
+    xc, yc, Pf, Phi = PT_HMC(; nx=500, ny=500, do_save=false, run_test)
+end
