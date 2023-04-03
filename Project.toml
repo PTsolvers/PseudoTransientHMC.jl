@@ -1,7 +1,7 @@
 name = "PseudoTransientHMC"
 uuid = "cb9d675c-d620-11ec-3bb4-3f7a5ee3044a"
 authors = ["Stefan Schmalholz, Ludovic Raess and contributors"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"

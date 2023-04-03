@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![DOI](https://zenodo.org/badge/299357364.svg)](https://zenodo.org/badge/latestdoi/299357364)
 
-This repository contains Pseudo-Transient (PT) routines resolving chemical reactions coupled to fluid flow in viscously defroming solid pourous matrix, so-called Hydro-Mechanical-Chemical (HMC) coupling. Example of such multi-physical processes relate to, e.g, the brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) and could explain the formation of olivine veins by dehydration of ductile serpentinite [(Schmalholz et al., 2022 - submitted)]().
+This repository contains Pseudo-Transient (PT) routines resolving chemical reactions coupled to fluid flow in viscously defroming solid pourous matrix, so-called Hydro-Mechanical-Chemical (HMC) coupling. Example of such multi-physical processes relate to, e.g, the brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) and could explain the formation of olivine veins by dehydration of ductile serpentinite ([Schmalholz et al., 2023 - submitted](), [Schmalholz et al., 2022](https://doi.org/10.1002/essoar.10512291.2)).
 
 Pseudo-Transient approach relies in using physics-inspired transient terms within differential equations in order to iteratively converge to an accurate solution. The PT HMC routines are written using the [Julia programming language](https://julialang.org) and build upon the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package to enable for optimal execution on graphical processing units (GPUs) and multi-threaded CPUs.
 
@@ -74,7 +74,9 @@ The output of running the [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl) script o
 ## References
 [Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). 2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
 
-[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022). Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study. Submitted to XYZ]()
+[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022).  Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for transient weakening. ESS Open Archive. https://doi.org/10.1002/essoar.10512291.2](https://doi.org/10.1002/essoar.10512291.2)
+
+[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (submitted). Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for porosity production and transient weakening. _Submitted to JGR_]()
 
 [CUDA.jl]: https://github.com/JuliaGPU/CUDA.jl
 [Julia Plots package]: https://github.com/JuliaPlots/Plots.jl
