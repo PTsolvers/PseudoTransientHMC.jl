@@ -74,11 +74,11 @@ The output of running the [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl) script o
 
 
 ## References
-[Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). 2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
+Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). **2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction**. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. [https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
 
-[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022).  Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for transient weakening. ESS Open Archive. https://doi.org/10.1002/essoar.10512291.2](https://doi.org/10.1002/essoar.10512291.2)
+Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022).  **Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for transient weakening.** ESS Open Archive. [https://doi.org/10.1002/essoar.10512291.2](https://doi.org/10.1002/essoar.10512291.2)
 
-[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (submitted). Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for porosity production and transient weakening. _Submitted to JGR_]()
+Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (submitted). **Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for porosity production and transient weakening.** [_Submitted to JGR_]()
 
 [CUDA.jl]: https://github.com/JuliaGPU/CUDA.jl
 [Julia Plots package]: https://github.com/JuliaPlots/Plots.jl
