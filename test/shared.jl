@@ -1,5 +1,7 @@
-using Test, ReferenceTests, BSON
-using ParallelStencil
+using Test
+using PseudoTransientHMC
+
+using ReferenceTests, BSON
 import ParallelStencil: @reset_parallel_stencil
 
 ENV["USE_GPU"]  = false

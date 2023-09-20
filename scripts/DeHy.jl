@@ -1,6 +1,6 @@
 # Hydro-mechanical-chemical 2D model for olivine vein formation by dehydration of serpentinite
 const run_test = haskey(ENV, "RUN_TEST") ? parse(Bool, ENV["RUN_TEST"]) : false
-const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : true
+const USE_GPU  = haskey(ENV, "USE_GPU" ) ? parse(Bool, ENV["USE_GPU"] ) : false
 const GPU_ID   = haskey(ENV, "GPU_ID"  ) ? parse(Int,  ENV["GPU_ID"]  ) : 0
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
@@ -10,7 +10,7 @@ using ParallelStencil.FiniteDifferences2D
 else
     @init_parallel_stencil(Threads, Float64, 2)
 end
-using Plots, Printf, Statistics, LinearAlgebra, MAT
+using Printf, Statistics, LinearAlgebra, MAT
 
 import ParallelStencil: INDICES
 ix,iy   = INDICES[1], INDICES[2]
@@ -119,10 +119,9 @@ end
     return
 end
 
-@parallel function compute_4!(∇q_f, Res_Pf, Rho_f, Rho_s_eq, X_s_eq, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, Pf, SlopeA,
-                              rho_f_maxA, ρ_0, p_reactA, rho_s_difA, rho_s_up, rho_s_minA, x_difA, x_minA, dtp, dx, dy)
+@parallel function compute_4!(∇q_f, Res_Pf, Rho_f, Rho_s_eq, X_s_eq, q_f_X, q_f_Y, Rho_t, Rho_t_old, ∇V_ρ_t, Pf, SlopeA, rho_f_maxA, ρ_0, p_reactA, rho_s_difA, rho_s_up, rho_s_minA, x_difA, x_minA, dtp, dx, dy)
     @all(∇q_f)     = @d_xi(q_f_X) / dx + @d_yi(q_f_Y) / dy
-    @all(Res_Pf)   = -@all(∇q_f) - (@inn(Rho_t) - @inn(Rho_t_old)) / dtp - @inn(∇V_ρ_t) # CONSERVATION OF TOTAL MASS EQUATION
+    @all(Res_Pf)   = -@all(∇q_f) - (@inn(Rho_t) - @inn(Rho_t_old)) / dtp - @inn(∇V_ρ_t)
     @all(Rho_f)    = (rho_f_maxA * log(@all(Pf) + 1.0)^(1.0 / 3.5)) / ρ_0
     @all(Rho_s_eq) = (-tanh(6e2 * (@all(Pf) - p_reactA)) * (rho_s_difA / 2.0 + rho_s_up / 3.0) + (rho_s_difA / 2.0 - rho_s_up / 3.0) + rho_s_minA + @all(SlopeA)) / ρ_0
     @all(X_s_eq)   = -tanh(6e2 * (@all(Pf) - p_reactA)) * x_difA / 2.0 + x_difA / 2.0 + x_minA
@@ -139,14 +138,13 @@ end
     @all(dPfdτ)   = dampPf * @all(dPfdτ) + @all(Res_Pf)
     @inn(Pf)      = @inn(Pf) + dt_Pf * @all(dPfdτ)
     @all(Rho_X_ϕ) = (1.0 - @all(Phi)) * @all(Rho_s) * @all(X_s)
-    @all(Res_Phi) = (@all(Rho_X_ϕ) - (1.0 - @all(Phi_old)) * @all(Rho_X_old)) / dtp + @all(∇V_ρ_X) # CONSERVATION OF MASS OF MgO EQUATION
+    @all(Res_Phi) = (@all(Rho_X_ϕ) - (1.0 - @all(Phi_old)) * @all(Rho_X_old)) / dtp + @all(∇V_ρ_X)
     @inn(Phi)     = @inn(Phi) + dtp * @inn(Res_Phi)
     return
 end
 
 macro limit_min(A, min_val) esc(:(max($A[$ix, $iy], $min_val))) end
-@parallel function compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old,
-                              dtPt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, η_min, α, dx, dy)
+@parallel function compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, dt_Pt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, η_min, α, dx, dy)
     @all(Eta)  = η_m * exp(-ϕ_exp * (@all(Phi) / ϕ_ini - @all(Phi) / @all(Phi)))
     @all(Eta)  = @limit_min(Eta, η_min)
     @all(Lam)  = λ_η * @all(Eta)
@@ -154,7 +152,7 @@ macro limit_min(A, min_val) esc(:(max($A[$ix, $iy], $min_val))) end
     @all(ε_xx) = @d_xa(Vx) / dx - 1.0 / 3.0 * @all(∇V)
     @all(ε_yy) = @d_ya(Vy) / dy - 1.0 / 3.0 * @all(∇V)
     @all(ε_xy) = 0.5 * (@d_yi(Vx) / dy + @d_xi(Vy) / dx)
-    @all(Ptot) = @all(Ptot) - dtPt * (@all(Ptot) - (@all(Ptot_old) - dtp * (K_d * @all(∇V) - α * ((@all(Pf) - @all(Pf_old)) / dtp) - K_d * @all(Pf) / ((1.0 - @all(Phi)) * @all(Lam)))) / (1.0 + dtp * K_d / ((1.0 - @all(Phi)) * @all(Lam))))
+    @all(Ptot) = @all(Ptot) - dt_Pt * (@all(Ptot) - (@all(Ptot_old) - dtp * (K_d * @all(∇V) - α * ((@all(Pf) - @all(Pf_old)) / dtp) - K_d * @all(Pf) / ((1.0 - @all(Phi)) * @all(Lam)))) / (1.0 + dtp * K_d / ((1.0 - @all(Phi)) * @all(Lam))))
     return
 end
 
@@ -185,16 +183,16 @@ end
 end
 
 @parallel function compute_9!(Res_Vx, Res_Vy, τ_xx, τ_yy, Ptot, τ_xy, dx, dy)
-    @all(Res_Vx) = -@d_xi(Ptot) / dx + @d_xi(τ_xx) / dx + @d_ya(τ_xy) / dy # HORIZONTAL FORCE BALANCE
-    @all(Res_Vy) = -@d_yi(Ptot) / dy + @d_yi(τ_yy) / dy + @d_xa(τ_xy) / dx # VERTICAL FORCE BALANCE
+    @all(Res_Vx) = -@d_xi(Ptot) / dx + @d_xi(τ_xx) / dx + @d_ya(τ_xy) / dy
+    @all(Res_Vy) = -@d_yi(Ptot) / dy + @d_yi(τ_yy) / dy + @d_xa(τ_xy) / dx
     return
 end
 
 @parallel function compute_10!(dVxdτ, dVydτ, Vx, Vy, Res_Vx, Res_Vy, dampV, dt_Stokes)
     @all(dVxdτ) = @all(dVxdτ) * dampV + @all(Res_Vx)
     @all(dVydτ) = @all(dVydτ) * dampV + @all(Res_Vy)
-    @inn(Vx)    = @inn(Vx) + dt_Stokes * @all(dVxdτ) # Pseudo-transient form of horizontal force balance
-    @inn(Vy)    = @inn(Vy) + dt_Stokes * @all(dVydτ) # Pseudo-transient form of vertical force balance
+    @inn(Vx)    = @inn(Vx) + dt_Stokes * @all(dVxdτ)
+    @inn(Vy)    = @inn(Vy) + dt_Stokes * @all(dVydτ)
     return
 end
 
@@ -294,7 +292,7 @@ end
     Pf_amb = P_ini * ones(nx, ny)
     if do_Pf_pert
         Pf[sqrt.((X_rot .- 0.0) .^ 2 ./ rad_a .^ 2 .+ (Y_rot .+ 0.0) .^ 2 ./ rad_b .^ 2).<1.0] .= P_ini - P_pert  # Porosity perturbation
-        for smo = 1:nsm # Smooting of perturbation
+        for _ = 1:nsm # Smooting of perturbation
             Pf[2:end-1, :] .= Pf[2:end-1, :] .+ 0.4 .* (Pf[3:end, :] .- 2.0 .* Pf[2:end-1, :] .+ Pf[1:end-2, :])
             Pf[:, 2:end-1] .= Pf[:, 2:end-1] .+ 0.4 .* (Pf[:, 3:end] .- 2.0 .* Pf[:, 2:end-1] .+ Pf[:, 1:end-2])
         end
@@ -366,7 +364,7 @@ end
     dPt_dt      = @zeros(nx  , ny  )
     dPhi_dt     = @zeros(nx  , ny  )
     dRhos_dt    = @zeros(nx  , ny  )
-    # TMP arrays for swell2
+    # Tmp arrays for swell2
     TmpX        = @zeros(nx+1, ny  )
     TmpY        = @zeros(nx  , ny+1)
     TmpS1       = @zeros(nx  , ny-1)
@@ -395,11 +393,11 @@ end
     ρ_i_V       = cfl * Re_V / nx
     dampPf      = damping .* (1.0 .- ρ_i_Pf)
     dampV       = damping .* (1.0 .- ρ_i_V)
-    dirname     = "output_$(runid)_$(nx)x$(ny)"; !ispath(dirname) && mkdir(dirname)
+    do_save && (dirname = "output_$(runid)_$(nx)x$(ny)"; !ispath(dirname) && mkdir(dirname))
     # time loop
     while timeP < time_tot && itp < nt
         if do_restart
-            restart_file = joinpath(@__DIR__, dirname, "DEHY_") * @sprintf("%04d", irestart) * ".mat"
+            restart_file = joinpath(@__DIR__, dirname, "dehy_") * @sprintf("%04d", irestart) * ".mat"
             vars_restart = matread(restart_file)
             Ptot      .= Data.Array( get(vars_restart, "Ptot", 1)      )
             Pf        .= Data.Array( get(vars_restart, "Pf", 1)        )
@@ -427,19 +425,13 @@ end
         end
     	err_M = 2*tol; itp += 1
         timeP += dtp; push!(Time_vec, timeP)
-
         if do_Pf_pert
-            if itp == 1
             # Necessary only of Pf-perturbation is applied
-                @parallel compute_1_ini!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η, Rho_s_amb, X_s_amb)
-            end
-            if itp > 1
-                @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η)
-            end
+            (itp == 1) && @parallel compute_1_ini!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η, Rho_s_amb, X_s_amb)
+            (itp >  1) && @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η)
         else
             @parallel compute_1!(Rho_s_old, Rho_f_old, X_s_old, Rho_X_old, Phi_old, Ptot_old, Pf_old, Rho_t_old, Eta, Lam, Rho_s, Rho_f, X_s, Phi, Ptot, Pf, η_m, ϕ_exp, ϕ_ini, λ_η)
         end
-
         kin_time = Kin_time_vec[itp]
     	# PT loop
     	it_tstep = 0; err_evo1 = []; err_evo2 = []; err_pl = []
@@ -471,7 +463,7 @@ end
             @parallel swell2_y!(TmpY, Rho_t)
             @parallel cum_mult2!(TmpX, TmpY, Vx, Vy)
             @parallel laplace!(∇V_ρ_t, TmpX, TmpY, dx, dy)
-            @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, dtPt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, η_min, α, dx, dy)
+            @parallel compute_7!(Eta, Lam, ∇V, ε_xx, ε_yy, ε_xy, Ptot, Vx, Vy, Phi, Ptot_old, Pf, Pf_old, dt_Pt, η_m, ϕ_exp, ϕ_ini, λ_η, dtp, K_d, η_min, α, dx, dy)
             @parallel compute_8!(τ_xx, τ_yy, τ_xy, Eta, ε_xx, ε_yy, ε_xy)
             @parallel swell2_x!(TmpS1, τ_xy)
             @parallel swell2_y!(τ_xyn, TmpS1)

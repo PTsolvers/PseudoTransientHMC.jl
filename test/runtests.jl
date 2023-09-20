@@ -1,6 +1,5 @@
 # NOTE: This file contains many parts that are copied from the file runtests.jl from the Package ParallelStencil.jl.
-push!(LOAD_PATH, "../src")
-
+using Test
 using PseudoTransientHMC
 
 function runtests()
@@ -14,7 +13,7 @@ function runtests()
 
     for f in testfiles
         try
-            run(`$exename -O3 --startup-file=no --check-bounds=no $(joinpath(testdir, f))`)
+            run(`$exename --startup-file=no $(joinpath(testdir, f))`)
         catch ex
             nfail += 1
         end
