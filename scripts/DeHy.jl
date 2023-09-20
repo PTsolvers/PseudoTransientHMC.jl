@@ -5,10 +5,10 @@ const GPU_ID   = haskey(ENV, "GPU_ID"  ) ? parse(Int,  ENV["GPU_ID"]  ) : 0
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 @static if USE_GPU
-    @init_parallel_stencil(CUDA, Float64, 2)
+    @init_parallel_stencil(CUDA, Float64, 2, inbounds=true)
     CUDA.device!(GPU_ID) # select GPU
 else
-    @init_parallel_stencil(Threads, Float64, 2)
+    @init_parallel_stencil(Threads, Float64, 2, inbounds=true)
 end
 using Printf, Statistics, LinearAlgebra, MAT
 
