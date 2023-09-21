@@ -41,7 +41,7 @@ for il in eachindex(fnum)
             p4 =  arrows!(axs[il], xc[rng], yc[rng], Vx[rng, rng], Vy[rng,rng]; lengthscale=2.0, arrowsize=9, color=:gray),
     )
 
-    axs[il].title = "$(label[il]) time/τc = $(@sprintf("%1.4f", timeP/t_char))"
+    axs[il].title = "$(label[il]) time/tc = $(@sprintf("%1.4f", timeP/t_char))"
     limits!(axs[il], -7, 7, -7, 7)
 
     (il > 1) && hideydecorations!(axs[il], grid=false)
