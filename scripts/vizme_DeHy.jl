@@ -5,12 +5,11 @@ using Printf
 @views avx(A) = 0.5 * (A[1:end-1, :] + A[2:end, :])
 @views avy(A) = 0.5 * (A[:, 1:end-1] + A[:, 2:end])
 
-fnum = (1, 500, 1000, 2000) # 500 1000 2000) # Four result files to be loaded
-label = ("a)", "b)", "c)", "d)")
+fnum = (1, 500, 1000, 2000) # user input - which steps to save
 
+label = ("a)", "b)", "c)", "d)")
 fig = Figure(resolution=(1000,400), fontsize=20)
 axs = Array{Any}(undef, 4)
-
 for il in eachindex(fnum)
     nsave = @sprintf("%04d", fnum[il])
     vars  = matread("dehy_$(nsave).mat")
