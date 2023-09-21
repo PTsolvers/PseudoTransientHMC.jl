@@ -3,27 +3,21 @@
 [![Build Status](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/PTsolvers/PseudoTransientHMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![DOI](https://zenodo.org/badge/299357364.svg)](https://zenodo.org/badge/latestdoi/299357364)
 
-This repository contains Pseudo-Transient (PT) routines resolving chemical reactions coupled to fluid flow in viscously defroming solid pourous matrix, so-called Hydro-Mechanical-Chemical (HMC) coupling. Example of such multi-physical processes relate to, e.g, the brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) and could explain the formation of olivine veins by dehydration of ductile serpentinite ([Schmalholz et al., 2023 - submitted](), [Schmalholz et al., 2022](https://doi.org/10.1002/essoar.10512291.2)).
 
-Pseudo-Transient approach relies in using physics-inspired transient terms within differential equations in order to iteratively converge to an accurate solution. The PT HMC routines are written using the [Julia programming language](https://julialang.org) and build upon the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package to enable for optimal execution on graphical processing units (GPUs) and multi-threaded CPUs.
+This repository contains Pseudo-Transient (PT) routines resolving chemical reactions coupled to fluid flow in viscously defroming solid pourous matrix, so-called Hydro-Mechanical-Chemical (HMC) coupling. Example of such multi-physical processes to understand, e.g, the formation of olivine veins by dehydration of ductile serpentinite ([Schmalholz et al., 2023 - submitted](), [Schmalholz et al., 2022](https://doi.org/10.1002/essoar.10512291.2)), or the brucite-periclase reactions [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351).
 
-## Content
-* [Script list](#script-list)
-* [Usage](#usage)
-* [Output](#output)
-* [References](#references)
+![Serpentinite dehydration and olivine vein formation during ductile shearing](docs/viz_dehy.png)
+> Serpentinite dehydration and olivine vein formation during ductile shearing
+
+Pseudo-Transient approach relies in using physics-motivated transient terms within differential equations in order to iteratively converge to an accurate solution. The PT HMC routines are written using the [Julia programming language](https://julialang.org) and build upon the high-performance [ParallelStencil.jl](https://github.com/omlins/ParallelStencil.jl) package to enable for optimal execution on graphics processing units (GPUs) and multi-threaded CPUs.
 
 ## Script list
-The scripts are located in two distinct folders. The folders contain the Julia (and early Matlab) routines and the `.mat` file with the corresponding thermodynamic data to be loaded as look-up tables.
-
-- The [scripts_2020](scripts_2020) folder relates to the [(Schmalholz et al., 2020)](https://doi.org/10.1029/2020GC009351) study. The "analytical" [`PT_HMC_bru_analytical.jl`](scripts_2020/PT_HMC_bru_analytical.jl) script includes a paramtetrisation of the solid and fluid densities and composition as function of fluid pressure to circumvent costly interpolation operations.
-
-- The [scripts_2022](scripts_2022) folder contains the routines for the [(Schmalholz et al., 2022)](https://doi.org/10.1002/essoar.10512291.2) "preprint" study. The main scipt is [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl). _The "rand" version implements resolving HMC coupling given a random initial porosity distribution._
-
-- The [scripts_2023](scripts_2023) folder contains the routines for the [(Schmalholz et al., _submitted_)]() study. The main scipt is [`DeHy.jl`](scripts_2023/DeHy.jl).
+The Julia scripts are located in the [scripts](scripts) folder which contains the routines for the [(Schmalholz et al., _submitted_)]() study.
+- The main script is [`DeHy.jl`](scripts/DeHy.jl);
+- The visualisation script is [`vizme_DeHy.jl`](scripts/vizme_DeHy.jl).
 
 ## Usage
-If not stated otherwise, all the routines are written in Julia and can be executed from the [Julia REPL], or from the terminal for improved performance. Output is produced using the [Julia Plots package].
+All the routines are written in Julia and can be executed from the [Julia REPL], or from the terminal for improved performance. Output is produced using [Makie.jl] (using the `CairoMakie` backend).
 
 The either multi-threaded CPU or GPU backend can be selected by adding the appropriate flag to the `USE_GPU` constant, modifying either the default behaviour in the top-most lines of the codes
 ```julia
@@ -46,40 +40,27 @@ julia> ]
 
 (PseudoTransientHMC) pkg> activate .
 
-(PseudoTransientHMC) pkg> add https://github.com/luraess/ParallelRandomFields.jl
-
 (PseudoTransientHMC) pkg> instantiate
 ```
 3. Run the script
 ```julia-repl
-julia> include("PT_HMC_atg.jl")
+julia> include("DeHy.jl")
 ```
 
 ### Example running the routine from the terminal
 
-1. Launch the Julia executable using the project's dependencies `--project`, disabling array bound checking for enhanced performance `--check-bounds=no`, and using optimization level 3 `-O3`.
+Launch the Julia executable using the project's dependencies `--project`:
 ```sh
-julia --project --check-bounds=no -O3 PT_HMC_atg.jl
+julia --project DeHy.jl
 ```
-Additional startup flag infos can be found [here](https://docs.julialang.org/en/v1/manual/getting-started/#man-getting-started)
-
-## Output
-The output of running the [`PT_HMC_bru_analytical.jl`](scripts_2020/PT_HMC_bru_analytical.jl) script on an Nvidia TitanXp GPU with `nx=1023, ny=1023`:
-
-![PT-HMC code predicting brucite-periclase reaction](docs/PT_HMC_bru_1023x1023.png)
-
-The output of running the [`PT_HMC_atg.jl`](scripts_2022/PT_HMC_atg.jl) script on an Nvidia Tesla V100 GPU with `nx=1023, ny=1023` (to be updated):
-
-![PT-HMC code predicting olivine vein formation](docs/PT_HMC_atg_1023x1023.png)
-
 
 ## References
-[Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). 2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
+Schmalholz, S. M., Moulas, E., Plümper, O., Myasnikov, A. V., & Podladchikov, Y. Y. (2020). **2D hydro‐mechanical‐chemical modeling of (De)hydration reactions in deforming heterogeneous rock: The periclase‐brucite model reaction**. Geochemistry, Geophysics, Geosystems, 21, 2020GC009351. [https://doi.org/10.1029/2020GC009351](https://doi.org/10.1029/2020GC009351)
 
-[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022).  Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for transient weakening. ESS Open Archive. https://doi.org/10.1002/essoar.10512291.2](https://doi.org/10.1002/essoar.10512291.2)
+Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (2022).  **Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for transient weakening.** ESS Open Archive. [https://doi.org/10.1002/essoar.10512291.2](https://doi.org/10.1002/essoar.10512291.2)
 
-[Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (submitted). Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for porosity production and transient weakening. _Submitted to JGR_]()
+Schmalholz, S. M., Moulas, E., Räss, L., & Müntener, O. (submitted). **Shear-driven formation of olivine veins by dehydration of ductile serpentinite: a numerical study with implications for porosity production and transient weakening.** [_Submitted to JGR_]()
 
 [CUDA.jl]: https://github.com/JuliaGPU/CUDA.jl
-[Julia Plots package]: https://github.com/JuliaPlots/Plots.jl
+[Makie.jl]: https://docs.makie.org/stable/
 [Julia REPL]: https://docs.julialang.org/en/v1/stdlib/REPL/
