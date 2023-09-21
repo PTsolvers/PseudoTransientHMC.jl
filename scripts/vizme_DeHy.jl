@@ -10,6 +10,7 @@ fnum = (1, 500, 1000, 2000) # user input - which steps to save
 label = ("a)", "b)", "c)", "d)")
 fig = Figure(resolution=(1000,400), fontsize=20)
 axs = Array{Any}(undef, 4)
+
 for il in eachindex(fnum)
     nsave = @sprintf("%04d", fnum[il])
     vars  = matread("dehy_$(nsave).mat")
@@ -43,13 +44,14 @@ for il in eachindex(fnum)
     axs[il].title = "$(label[il]) time/τc = $(@sprintf("%1.4f", timeP/t_char))"
     limits!(axs[il], -7, 7, -7, 7)
 
-    (il >  1) && hideydecorations!(axs[il], grid=false)
+    (il > 1) && hideydecorations!(axs[il], grid=false)
     axs[1].ylabel = "y/r"
+
     subgrid = GridLayout(fig[1, 4][1, 2], tellheight = false)
     Label(subgrid[1, 1], "ρₛ [kg⋅m⁻¹]")
     Colorbar(subgrid[2, 1], plt.p1; halign=:left)
-    e1 = LineElement(color = :black, linestyle = nothing)
-    e2 = LineElement(color = :magenta, linestyle = nothing)
+
+    e1, e2 = LineElement(color = :black, linestyle = nothing), LineElement(color = :magenta, linestyle = nothing)
     Legend(fig[1, 1], [e1, e2], ["p_f = 12.7 kbar", "ϕ = 0.15"],
         halign = :right, valign = :top, margin = (7, 7, 7, 7), labelsize = 14)
 end
